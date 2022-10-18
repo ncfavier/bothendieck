@@ -3,20 +3,26 @@
 
   inputs = {
     nixpkgs.url = "nixpkgs/nixpkgs-unstable";
-    html-charset.url = "github:ncfavier/html-charset/maintenance";
-    html-charset.flake = false;
     qeval.url = "github:ncfavier/qeval";
     qeval.flake = false;
+
+    html-charset.url = "github:ncfavier/html-charset/maintenance";
+    html-charset.flake = false;
   };
 
   outputs = { self, flake-utils, nixpkgs, html-charset, qeval }: let
+    src = builtins.path {
+      name = "bothendieck-source";
+      path = self;
+      filter = path: type: let
+        name = baseNameOf path;
+      in name != "flake.nix" && name != "flake.lock";
+    };
     overlay = final: prev: {
       haskell = prev.haskell // {
-        packageOverrides = hpkgs: hprev: with final.haskell.lib; {
-          gnuidn = markUnbroken (doJailbreak hprev.gnuidn);
+        packageOverrides = hpkgs: hprev: {
           html-charset = hpkgs.callCabal2nix "html-charset" html-charset {};
-
-          bothendieck = hpkgs.callCabal2nix "bothendieck" ./. {};
+          bothendieck = hpkgs.callCabal2nix "bothendieck" src {};
         };
       };
     };
@@ -28,14 +34,14 @@
         (_: _: { path = nixpkgs; }) # avoid needless copying
       ];
     };
-    all-evaluators = (import qeval { basePkgs = pkgs; }).evaluators.all;
+    inherit (import qeval { basePkgs = pkgs; }) evaluators;
     bothendieck = pkgs.runCommand "bothendieck" { nativeBuildInputs = [ pkgs.makeWrapper ]; } ''
       makeWrapper ${pkgs.haskellPackages.bothendieck}/bin/bothendieck "$out/bin/bothendieck" \
-        --set EVALUATORS ${all-evaluators}
+        --set EVALUATORS ${evaluators.all}
     '';
   in {
     packages = {
-      inherit all-evaluators bothendieck;
+      inherit bothendieck evaluators;
       default = bothendieck;
     };
   }) // {
