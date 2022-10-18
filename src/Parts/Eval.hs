@@ -47,7 +47,7 @@ evalHandler evaluators = EventHandler matchMessage \ src msg -> case src of
     | (e, T.stripPrefix ">" -> Just (T.strip -> input)) <- T.breakOn ">" msg
     , not (T.null input)
     , Just evaluator <- evaluators M.!? e
-    -> void $ do
+    -> void $ forkWorker do
       (_exitCode, T.pack -> output, _err) <- liftIO $ readCreateProcessWithExitCode (proc evaluator [T.unpack input]) ""
       replyTo src (truncateWithEllipsis maxOutputLength output)
   _ -> pure ()
