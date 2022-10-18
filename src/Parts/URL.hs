@@ -73,9 +73,9 @@ fetchUrlTitle :: Text -> IO (Maybe Text)
 fetchUrlTitle url = do
   manager <- getGlobalManager
   request <- addRequestHeader "Accept-Language" "en,*"
-            . addRequestHeader "User-Agent" "SomeHaskellBot"
-            . fixHost
-          <$> parseRequestThrow (T.unpack url)
+           . addRequestHeader "User-Agent" "HendieckBot" -- Twitter is picky about this
+           . fixHost
+         <$> parseRequestThrow (T.unpack url)
   withResponse request manager \ response -> do
     case mapMaybe (parseAccept @MediaType) $ getResponseHeader "Content-Type" response of
       ct:_ | ct `matches` "text/html"

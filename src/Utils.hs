@@ -14,13 +14,16 @@ import System.Timeout
 _PrivmsgNoCTCP :: Prism' (Message a) (Target a, a)
 _PrivmsgNoCTCP = _Privmsg . aside _Right
 
+matchMessage :: Event Text -> Maybe Text
+matchMessage e = snd <$> matchType _PrivmsgNoCTCP e
+
 matchMessageOrAction :: Event Text -> Maybe Text
-matchMessageOrAction e = snd <$> matchType _PrivmsgNoCTCP e <|> T.unwords <$> matchCTCP "ACTION" e
+matchMessageOrAction e = matchMessage e <|> T.unwords <$> matchCTCP "ACTION" e
 
 forkWorker :: IRC s () -> IRC s ThreadId
 forkWorker action = fork do
   s <- getIRCState
-  void . liftIO . timeout 10_000_000 $ runIRCAction action s
+  void . liftIO . timeout 15_000_000 $ runIRCAction action s
 
 ircBold, ircReset :: Text
 ircBold = T.singleton '\x02'

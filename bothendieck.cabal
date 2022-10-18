@@ -35,13 +35,18 @@ executable bothendieck
   main-is: Main.hs
   other-modules:
     Utils
+    Parts.Eval
     Parts.URL
   build-depends:
+    aeson ^>= 2.0,
     base >= 4.15.1.0 && < 5,
     bytestring ^>= 0.10,
     bytestring-encoding ^>= 0.1,
     case-insensitive ^>= 1.2,
+    containers ^>= 0.6,
     dhall ^>= 1.40,
+    directory ^>= 1.3,
+    filepath ^>= 1.4,
     gnuidn ^>= 0.2,
     html-charset ^>= 0.1,
     http-client ^>= 0.7,
@@ -56,6 +61,7 @@ executable bothendieck
     network-ip ^>= 0.3,
     network-uri ^>= 2.6,
     optparse-applicative ^>= 0.16,
+    process ^>= 1.6,
     regex-tdfa ^>= 1.3,
     tagsoup ^>= 0.14,
     text ^>= 1.2,
