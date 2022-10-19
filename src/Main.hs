@@ -1,6 +1,7 @@
 module Main where
 
 import Control.Lens
+import Data.Foldable
 import Data.Text qualified as T
 import Data.Text.Encoding
 import Dhall
@@ -50,5 +51,5 @@ main = do
            & logfunc .~ (if verbose options then stdoutLogger else noopLogger)
       cfg  = defaultInstanceConfig (nick config)
            & IRC.channels .~ Main.channels config
-           & handlers <>~ [ urlTitleHandler ] <> [ evalHandler e | Just e <- [evalState] ]
+           & handlers <>~ [ urlTitleHandler ] <> toList (evalHandler <$> evalState)
   runClient conn cfg ()

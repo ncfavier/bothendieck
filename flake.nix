@@ -4,7 +4,8 @@
   inputs = {
     nixpkgs.url = "nixpkgs/nixpkgs-unstable";
     qeval.url = "github:ncfavier/qeval";
-    qeval.flake = false;
+    qeval.inputs.nixpkgs.follows = "nixpkgs";
+    qeval.inputs.flake-utils.follows = "flake-utils";
 
     html-charset.url = "github:ncfavier/html-charset/maintenance";
     html-charset.flake = false;
@@ -29,20 +30,22 @@
   in flake-utils.lib.eachDefaultSystem (system: let
     pkgs = import nixpkgs {
       inherit system;
-      overlays = [
-        overlay
-        (_: _: { path = nixpkgs; }) # avoid needless copying
-      ];
+      overlays = [ overlay ];
     };
-    inherit (import qeval { basePkgs = pkgs; }) evaluators;
+    evaluators = qeval.packages.${system}.all;
     bothendieck = pkgs.runCommand "bothendieck" { nativeBuildInputs = [ pkgs.makeWrapper ]; } ''
       makeWrapper ${pkgs.haskellPackages.bothendieck}/bin/bothendieck "$out/bin/bothendieck" \
-        --set EVALUATORS ${evaluators.all}
+        --set EVALUATORS ${evaluators}
     '';
   in {
     packages = {
       inherit bothendieck evaluators;
       default = bothendieck;
+    };
+    devShells.default = pkgs.mkShell {
+      packages = with pkgs; [ cabal-install pkg-config zlib libidn ];
+      inputsFrom = with pkgs; [ haskellPackages.bothendieck ];
+      EVALUATORS = evaluators;
     };
   }) // {
     overlays.default = overlay;

@@ -69,8 +69,8 @@ urlTitleInit = setGlobalManager
            =<< newManager . fst
            =<< mkRestrictedManagerSettings (addressRestriction restrictIPs) Nothing Nothing
 
-fetchUrlTitle :: Text -> IO (Maybe Text)
-fetchUrlTitle url = do
+fetchUrlTitle :: MonadIO m => Text -> m (Maybe Text)
+fetchUrlTitle url = liftIO do
   manager <- getGlobalManager
   request <- addRequestHeader "Accept-Language" "en,*"
            . addRequestHeader "User-Agent" "HendieckBot" -- Twitter is picky about this
@@ -98,9 +98,6 @@ urlTitleHandler :: EventHandler a
 urlTitleHandler = EventHandler matchMessageOrAction \ src msg -> case src of
   Channel _channel _nick -> void $ forkWorker do
     let urls = take maxUrls . map cleanUpURL $ getAllTextMatches (msg =~ urlRegex)
-    for_ urls \ url -> do
-      mtitle <- liftIO $ fetchUrlTitle url
-      case mtitle of
-        Just title -> replyTo src (ircBold <> "> " <> ircReset <> truncateWithEllipsis maxTitleLength title)
-        _ -> pure ()
+    for_ urls \ url -> fetchUrlTitle url >>= traverse \ title -> do
+      replyTo src (ircBold <> "> " <> ircReset <> truncateWithEllipsis maxTitleLength title)
   _ -> pure ()

@@ -30,16 +30,14 @@ maxOutputLength :: Int
 maxOutputLength = 300
 
 evalInit :: IO (Maybe Evaluators)
-evalInit = do
-  mevaluators <- lookupEnv "EVALUATORS"
-  case mevaluators of
-    Nothing -> Nothing <$ T.hPutStrLn stderr "warning: EVALUATORS is not set"
-    Just evaluatorsPath -> do
-      descs <- listDirectory (evaluatorsPath </> "desc")
-      Just . mconcat <$> for descs \ desc -> do
-        evaluator <- either fail pure =<< eitherDecodeFileStrict' (evaluatorsPath </> "desc" </> desc)
-        let path = evaluatorsPath </> "bin" </> desc
-        pure . M.fromList $ [(cmd, path) | cmd <- name evaluator : aliases evaluator]
+evalInit = lookupEnv "EVALUATORS" >>= \case
+  Nothing -> Nothing <$ T.hPutStrLn stderr "warning: EVALUATORS is not set"
+  Just evaluatorsPath -> do
+    evaluators <- listDirectory (evaluatorsPath </> "desc")
+    Just . mconcat <$> for evaluators \ evaluator -> do
+      desc <- either fail pure =<< eitherDecodeFileStrict' (evaluatorsPath </> "desc" </> evaluator)
+      let path = evaluatorsPath </> "bin" </> evaluator
+      pure . M.fromList $ [(cmd, path) | cmd <- name desc : aliases desc]
 
 evalHandler :: Evaluators -> EventHandler a
 evalHandler evaluators = EventHandler matchMessage \ src msg -> case src of

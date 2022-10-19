@@ -21,6 +21,7 @@ common common
     DeriveAnyClass
     DeriveGeneric
     ImportQualifiedPost
+    LambdaCase
     NamedFieldPuns
     NumericUnderscores
     OverloadedStrings
