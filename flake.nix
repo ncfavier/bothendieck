@@ -21,9 +21,9 @@
     };
     overlay = final: prev: {
       haskell = prev.haskell // {
-        packageOverrides = hpkgs: hprev: {
-          html-charset = hpkgs.callCabal2nix "html-charset" html-charset {};
-          bothendieck = hpkgs.callCabal2nix "bothendieck" src {};
+        packageOverrides = final.haskell.lib.packageSourceOverrides {
+          bothendieck = src;
+          inherit html-charset;
         };
       };
     };
@@ -42,9 +42,8 @@
       inherit bothendieck evaluators;
       default = bothendieck;
     };
-    devShells.default = pkgs.mkShell {
-      packages = with pkgs; [ cabal-install pkg-config zlib libidn ];
-      inputsFrom = with pkgs; [ haskellPackages.bothendieck ];
+    devShells.default = pkgs.haskellPackages.shellFor {
+      packages = ps: [ ps.bothendieck ];
       EVALUATORS = evaluators;
     };
   }) // {
