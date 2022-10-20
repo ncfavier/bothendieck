@@ -7,9 +7,13 @@ import Data.Map (Map)
 import Data.Map qualified as M
 import Data.Text (Text)
 import Data.Text qualified as T
+import Data.Text.Encoding qualified as T
 import Data.Text.IO qualified as T
 import Data.Traversable
 import GHC.Generics
+import Network.HTTP.Client
+import Network.HTTP.Client.MultipartFormData
+import Network.HTTP.Simple
 import Network.IRC.Client
 import System.Directory
 import System.Environment
@@ -27,7 +31,10 @@ data Desc = Desc
   } deriving (Generic, FromJSON)
 
 maxOutputLength :: Int
-maxOutputLength = 300
+maxOutputLength = 400
+
+maxOutputLines :: Int
+maxOutputLines = 5
 
 evalInit :: IO (Maybe Evaluators)
 evalInit = lookupEnv "EVALUATORS" >>= \case
@@ -37,7 +44,7 @@ evalInit = lookupEnv "EVALUATORS" >>= \case
     Just . mconcat <$> for evaluators \ evaluator -> do
       desc <- either fail pure =<< eitherDecodeFileStrict' (evaluatorsPath </> "desc" </> evaluator)
       let path = evaluatorsPath </> "bin" </> evaluator
-      pure . M.fromList $ [(cmd, path) | cmd <- name desc : aliases desc]
+      pure $ M.fromList [(cmd, path) | cmd <- name desc : aliases desc]
 
 evalHandler :: Evaluators -> EventHandler a
 evalHandler evaluators = EventHandler matchMessage \ src msg -> case src of
@@ -47,5 +54,12 @@ evalHandler evaluators = EventHandler matchMessage \ src msg -> case src of
     , Just evaluator <- evaluators M.!? e
     -> void $ forkWorker do
       (_exitCode, T.pack -> output, _err) <- liftIO $ readCreateProcessWithExitCode (proc evaluator [T.unpack input]) ""
-      replyTo src (truncateWithEllipsis maxOutputLength output)
+      if T.compareLength output maxOutputLength <= EQ && length (T.lines output) <= maxOutputLines then
+        replyTo src output
+      else do
+        request <- parseRequestThrow "https://0x0.st" >>= formDataBody
+          [partFileRequestBody "file" "-" $ RequestBodyBS $ T.encodeUtf8 output]
+        response <- httpBS request
+        replyTo src $ T.unlines (take maxOutputLines . T.lines $ truncateWithEllipsis maxOutputLength output)
+                   <> ircBold <> "[" <> truncateWithEllipsis 100 (T.strip . T.decodeUtf8 $ getResponseBody response) <> "]" <> ircReset
   _ -> pure ()
