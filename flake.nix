@@ -32,11 +32,13 @@
       inherit system;
       overlays = [ overlay ];
     };
-    evaluators = qeval.packages.${system}.all;
-    bothendieck = pkgs.runCommand "bothendieck" { nativeBuildInputs = [ pkgs.makeWrapper ]; } ''
-      makeWrapper ${pkgs.haskellPackages.bothendieck}/bin/bothendieck "$out/bin/bothendieck" \
-        --set EVALUATORS ${evaluators}
-    '';
+    evaluators = qeval.legacyPackages.${system}.evaluators.all;
+    bothendieck = pkgs.callPackage ({ runCommand, haskellPackages, makeWrapper, evaluators }:
+      runCommand "bothendieck" { nativeBuildInputs = [ makeWrapper ]; } ''
+        makeWrapper ${haskellPackages.bothendieck}/bin/bothendieck "$out/bin/bothendieck" \
+          --set EVALUATORS ${evaluators}
+      ''
+    ) { inherit evaluators; };
   in {
     packages = {
       inherit bothendieck evaluators;
