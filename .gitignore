@@ -1,5 +1,5 @@
 .direnv
 result*
 dist*
-*.dhall
-!config.sample.dhall
+config.*
+!config.sample.toml

@@ -2,11 +2,13 @@ module Main where
 
 import Control.Lens
 import Data.Foldable
+import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Encoding
-import Dhall
+import GHC.Generics
 import Network.IRC.Client as IRC hiding (server, port, nick, password)
 import Options.Applicative hiding (auto)
+import Toml qualified
 
 import Parts.Eval
 import Parts.URL
@@ -19,23 +21,23 @@ data Options = Options
 data Config = Config
   { server :: Text
   , tls :: Bool
-  , port :: Natural
+  , port :: Int
   , nick :: Text
   , password :: Maybe Text
   , realName :: Text
   , channels :: [Text]
-  } deriving (Generic, FromDhall)
+  } deriving (Generic)
 
 parseOptions :: Parser Options
 parseOptions = do
-  configFile <- strOption (long "config" <> short 'c' <> metavar "PATH" <> help "Configuration file to use" <> value "config.dhall" <> showDefault)
+  configFile <- strOption (long "config" <> short 'c' <> metavar "PATH" <> help "Configuration file to use" <> value "config.toml" <> showDefault)
   verbose <- switch (long "verbose" <> short 'v' <> help "Log every IRC message to standard output")
   pure Options{..}
 
 main :: IO ()
 main = do
   options <- execParser (info (parseOptions <**> helper) mempty)
-  config <- inputFile auto (configFile options)
+  config <- Toml.decodeFile Toml.genericCodec (configFile options)
   evalState <- evalInit
   urlTitleInit
   let getConnection h p

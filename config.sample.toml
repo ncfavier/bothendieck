@@ -1,0 +1,7 @@
+server = "irc.libera.chat"
+tls = true
+port = 6697
+nick = "bothendieck"
+password = "hunter2"
+realName = "bothendieck"
+channels = []

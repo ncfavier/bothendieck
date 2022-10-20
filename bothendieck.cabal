@@ -45,7 +45,6 @@ executable bothendieck
     bytestring-encoding ^>= 0.1,
     case-insensitive ^>= 1.2,
     containers ^>= 0.6,
-    dhall ^>= 1.40,
     directory ^>= 1.3,
     filepath ^>= 1.4,
     gnuidn ^>= 0.2,
@@ -66,3 +65,4 @@ executable bothendieck
     regex-tdfa ^>= 1.3,
     tagsoup ^>= 0.14,
     text ^>= 1.2,
+    tomland ^>= 1.3,

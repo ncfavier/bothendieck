@@ -10,7 +10,7 @@ A simple IRC bot based on the [`irc-client`](https://hackage.haskell.org/package
 With a [flakes-enabled](https://nixos.wiki/wiki/Flakes#Enable_flakes) Nix:
 
 ```console
-$ nix run github:ncfavier/bothendieck -- -c path/to/config.dhall
+$ nix run github:ncfavier/bothendieck -- -c path/to/config.toml
 ```
 
-See [`config.sample.dhall`](https://github.com/ncfavier/bothendieck/blob/main/config.sample.dhall) for inspiration.
+See [`config.sample.toml`](https://github.com/ncfavier/bothendieck/blob/main/config.sample.toml) for inspiration.
