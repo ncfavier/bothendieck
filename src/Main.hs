@@ -16,6 +16,7 @@ import Toml qualified
 
 import Parts.Eval
 import Parts.URL
+import Parts.Wiktionary
 import Utils
 
 data Options = Options
@@ -51,11 +52,12 @@ main = do
     _ -> pure (password config)
   (evalHandler, evalCommands) <- evalInit
   urlTitleHandler <- urlTitleInit
+  wiktionaryCommands <- wiktionaryInit
   let getConnection h p
         | tls config = tlsConnection (WithDefaultConfig h p)
         | otherwise = plainConnection h p
       authenticate pass = send $ Privmsg "NickServ" $ Right $ T.unwords ["IDENTIFY", nick config, pass]
-      commands = mconcat [evalCommands]
+      commands = mconcat [evalCommands, wiktionaryCommands]
       commandHandler (src@(Channel _channel _nick), False, msg)
         | Just (cmd:args) <- T.words <$> T.stripPrefix (commandPrefix config) msg
         , Just runCommand <- commands M.!? cmd

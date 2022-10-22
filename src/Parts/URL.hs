@@ -1,4 +1,4 @@
-module Parts.URL (urlTitleInit) where
+module Parts.URL (urlTitleInit, fetchUrlTitle) where
 
 import Control.Monad.IO.Class
 import Data.ByteString.Char8 qualified as B8
@@ -12,6 +12,7 @@ import Data.Text qualified as T
 import Data.Text.IDN.IDNA
 import Network.HTTP.Client
 import Network.HTTP.Client.Restricted
+import Network.HTTP.Client.TLS
 import Network.HTTP.Media
 import Network.HTTP.Simple hiding (httpLbs, withResponse)
 import Network.IP.Addr
@@ -64,24 +65,26 @@ restrictIPs _ = Just (ConnectionRestricted "forbidden address")
 -- | Posts the title of URLs contained in messages from public channels.
 urlTitleInit :: IO (MessageHandler s Text)
 urlTitleInit = do
-  manager <- newManager . fst =<< mkRestrictedManagerSettings (addressRestriction restrictIPs) Nothing Nothing
+  setGlobalManager =<< newManager . fst =<< mkRestrictedManagerSettings (addressRestriction restrictIPs) Nothing Nothing
   pure \ (src, _action, msg) -> case src of
     Channel _channel _nick -> True <$ do
       let urls = take maxUrls . map cleanUpURL $ getAllTextMatches (msg =~ urlRegex)
-      for_ urls \ url -> fetchUrlTitle manager url >>= traverse \ title -> do
+      for_ urls \ url -> fst <$> fetchUrlTitle url >>= traverse \ title -> do
         replyTo src (ircBold <> "> " <> ircReset <> truncateWithEllipsis maxTitleLength title)
     _ -> pure False
 
-fetchUrlTitle :: MonadIO m => Manager -> Text -> m (Maybe Text)
-fetchUrlTitle manager url = liftIO do
+-- | Fetches the HTML title of a URL and also returns the canonical URL (after performing any redirections).
+fetchUrlTitle :: MonadIO m => Text -> m (Maybe Text, Text)
+fetchUrlTitle url = liftIO do
   request <- addRequestHeader "Accept-Language" "en,*"
            . addRequestHeader "User-Agent" "SomeHaskellBot" -- Twitter is picky about this
            . fixHost
          <$> parseRequestThrow (T.unpack url)
-  withResponse request manager \ response -> do
+  manager <- getGlobalManager
+  withResponse request manager \ response -> (,T.pack . show . getUri $ getOriginalRequest response) <$> do
     case mapMaybe (parseAccept @MediaType) $ getResponseHeader "Content-Type" response of
       ct:_ | ct `matches` "text/html"
-          || ct `matches` "application/xhtml+xml" -> do
+          || ct `matches` "application/xhtml+xml" ->  do
         body <- brReadSome (getResponseBody response) maxResponseSize
         encoding <- maybe (return BE.utf8) BE.mkTextEncoding $ asum
           [ B8.unpack . original <$> ct /. "charset"

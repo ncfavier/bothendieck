@@ -4,6 +4,7 @@ A simple IRC bot based on the [`irc-client`](https://hackage.haskell.org/package
 
 - [URL titles](https://github.com/ncfavier/bothendieck/blob/main/src/Parts/URL.hs).
 - [Evaluators](https://github.com/ncfavier/bothendieck/blob/main/src/Parts/Eval.hs) for a bunch of languages, running in a VM. Uses [qeval](https://github.com/tilpner/qeval). Syntax: `haskell> 42`.
+- [Wiktionary](https://github.com/ncfavier/bothendieck/blob/main/src/Parts/Wiktionary.hs): random pages from [English Wiktionary](https://en.wiktionary.org). Syntax: `.wrandom [CATEGORY|-l LANGUAGE]`.
 
 ## Usage
 

@@ -38,6 +38,7 @@ executable bothendieck
   other-modules:
     Parts.Eval
     Parts.URL
+    Parts.Wiktionary
     Utils
   build-depends:
     aeson ^>= 2.0,
