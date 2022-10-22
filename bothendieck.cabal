@@ -26,6 +26,7 @@ common common
     NumericUnderscores
     OverloadedStrings
     RecordWildCards
+    TupleSections
     TypeApplications
     ViewPatterns
   ghc-options: -Wall
@@ -35,9 +36,9 @@ executable bothendieck
   hs-source-dirs: src
   main-is: Main.hs
   other-modules:
-    Utils
     Parts.Eval
     Parts.URL
+    Utils
   build-depends:
     aeson ^>= 2.0,
     base >= 4.15.1.0 && < 5,
@@ -46,6 +47,7 @@ executable bothendieck
     case-insensitive ^>= 1.2,
     containers ^>= 0.6,
     directory ^>= 1.3,
+    extra ^>= 1.7,
     filepath ^>= 1.4,
     gnuidn ^>= 0.2,
     html-charset ^>= 0.1,

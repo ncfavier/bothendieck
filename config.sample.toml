@@ -5,3 +5,4 @@ nick = "bothendieck"
 password = "hunter2"
 realName = "bothendieck"
 channels = []
+commandPrefix = "."

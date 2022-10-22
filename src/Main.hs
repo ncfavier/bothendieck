@@ -1,25 +1,28 @@
 module Main where
 
 import Control.Lens
+import Control.Monad.Extra
 import Control.Monad.IO.Class
 import Data.Foldable
+import Data.Map qualified as M
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.IO qualified as T
 import Data.Text.Encoding
 import GHC.Generics
 import Network.IRC.Client as IRC hiding (server, port, nick, password)
-import Options.Applicative hiding (auto)
+import Options.Applicative hiding (action)
 import Toml qualified
 
 import Parts.Eval
 import Parts.URL
+import Utils
 
 data Options = Options
- { configFile :: FilePath
- , passwordFile :: Maybe FilePath
- , verbose :: Bool
- }
+  { configFile :: FilePath
+  , passwordFile :: Maybe FilePath
+  , verbose :: Bool
+  }
 
 data Config = Config
   { server :: Text
@@ -29,6 +32,7 @@ data Config = Config
   , password :: Maybe Text
   , realName :: Text
   , channels :: [Text]
+  , commandPrefix :: Text
   } deriving (Generic)
 
 parseOptions :: Parser Options
@@ -45,12 +49,21 @@ main = do
   maybePassword <- case passwordFile options of
     Just passFile -> liftIO $ Just <$> T.readFile passFile
     _ -> pure (password config)
-  evalState <- evalInit
-  urlTitleInit
+  (evalHandler, evalCommands) <- evalInit
+  urlTitleHandler <- urlTitleInit
   let getConnection h p
         | tls config = tlsConnection (WithDefaultConfig h p)
         | otherwise = plainConnection h p
       authenticate pass = send $ Privmsg "NickServ" $ Right $ T.unwords ["IDENTIFY", nick config, pass]
+      commands = mconcat [evalCommands]
+      commandHandler (src@(Channel _channel _nick), False, msg)
+        | Just (cmd:args) <- T.words <$> T.stripPrefix (commandPrefix config) msg
+        , Just runCommand <- commands M.!? cmd
+        = True <$ runCommand src args
+      commandHandler _ = pure False
+      messageHandlers = [commandHandler, evalHandler, urlTitleHandler]
+      handleMessages = EventHandler matchMessageOrAction \ src (action, msg) -> do
+        void . forkWorker $ anyM ($ (src, action, msg)) messageHandlers
       conn = getConnection (encodeUtf8 (server config)) (fromIntegral (port config))
            & username .~ nick config
            & realname .~ realName config
@@ -58,5 +71,5 @@ main = do
            & logfunc .~ (if verbose options then stdoutLogger else noopLogger)
       cfg  = defaultInstanceConfig (nick config)
            & IRC.channels .~ Main.channels config
-           & handlers <>~ [ urlTitleHandler ] <> toList (evalHandler <$> evalState)
+           & handlers <>~ [handleMessages]
   runClient conn cfg ()

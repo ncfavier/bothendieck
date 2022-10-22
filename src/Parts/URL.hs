@@ -1,6 +1,5 @@
-module Parts.URL (urlTitleInit, urlTitleHandler) where
+module Parts.URL (urlTitleInit) where
 
-import Control.Monad
 import Control.Monad.IO.Class
 import Data.ByteString.Char8 qualified as B8
 import Data.ByteString.Encoding qualified as BE
@@ -13,7 +12,6 @@ import Data.Text qualified as T
 import Data.Text.IDN.IDNA
 import Network.HTTP.Client
 import Network.HTTP.Client.Restricted
-import Network.HTTP.Client.TLS
 import Network.HTTP.Media
 import Network.HTTP.Simple hiding (httpLbs, withResponse)
 import Network.IP.Addr
@@ -63,17 +61,21 @@ restrictIPs AddrInfo{addrAddress = SockAddrInet6 _ _ (hostAddress6ToTuple -> (a,
     _ -> Just (ConnectionRestricted "forbidden IPv6")
 restrictIPs _ = Just (ConnectionRestricted "forbidden address")
 
--- | Initialisation action to be called before any requests are made.
-urlTitleInit :: IO ()
-urlTitleInit = setGlobalManager
-           =<< newManager . fst
-           =<< mkRestrictedManagerSettings (addressRestriction restrictIPs) Nothing Nothing
+-- | Posts the title of URLs contained in messages from public channels.
+urlTitleInit :: IO (MessageHandler s Text)
+urlTitleInit = do
+  manager <- newManager . fst =<< mkRestrictedManagerSettings (addressRestriction restrictIPs) Nothing Nothing
+  pure \ (src, _action, msg) -> case src of
+    Channel _channel _nick -> True <$ do
+      let urls = take maxUrls . map cleanUpURL $ getAllTextMatches (msg =~ urlRegex)
+      for_ urls \ url -> fetchUrlTitle manager url >>= traverse \ title -> do
+        replyTo src (ircBold <> "> " <> ircReset <> truncateWithEllipsis maxTitleLength title)
+    _ -> pure False
 
-fetchUrlTitle :: MonadIO m => Text -> m (Maybe Text)
-fetchUrlTitle url = liftIO do
-  manager <- getGlobalManager
+fetchUrlTitle :: MonadIO m => Manager -> Text -> m (Maybe Text)
+fetchUrlTitle manager url = liftIO do
   request <- addRequestHeader "Accept-Language" "en,*"
-           . addRequestHeader "User-Agent" "HendieckBot" -- Twitter is picky about this
+           . addRequestHeader "User-Agent" "SomeHaskellBot" -- Twitter is picky about this
            . fixHost
          <$> parseRequestThrow (T.unpack url)
   withResponse request manager \ response -> do
@@ -92,12 +94,3 @@ fetchUrlTitle url = liftIO do
           [] -> Nothing
           ws -> Just (T.unwords ws)
       _ -> pure Nothing
-
--- | Posts the title of URLs contained in messages from public channels.
-urlTitleHandler :: EventHandler a
-urlTitleHandler = EventHandler matchMessageOrAction \ src msg -> case src of
-  Channel _channel _nick -> void $ forkWorker do
-    let urls = take maxUrls . map cleanUpURL $ getAllTextMatches (msg =~ urlRegex)
-    for_ urls \ url -> fetchUrlTitle url >>= traverse \ title -> do
-      replyTo src (ircBold <> "> " <> ircReset <> truncateWithEllipsis maxTitleLength title)
-  _ -> pure ()
