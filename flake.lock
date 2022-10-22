@@ -88,11 +88,11 @@
         "nur": "nur"
       },
       "locked": {
-        "lastModified": 1666273245,
-        "narHash": "sha256-067j6brP2YK8ROSSi8/XNhQrhjcfwmUkEPIOUR8eAso=",
+        "lastModified": 1666384671,
+        "narHash": "sha256-aiSqUdRv5Z1zMT1OQFXGvj+5wKeepMj4HfrviDF1emk=",
         "owner": "ncfavier",
         "repo": "qeval",
-        "rev": "cecd35e51a28617b10d6cf5830727a7bbbebf286",
+        "rev": "2f1c2ce370ff54992d3248cad776d2f193a24b6d",
         "type": "github"
       },
       "original": {
