@@ -20,7 +20,10 @@ wikimediaInit = do
           Just (T.stripSuffix (" - " <> project) -> Just title) -> do
             replyTo src (ircBold <> title <> ircReset <> " " <> "[" <> url <> anchor <> "]")
           _ -> pure ()
+      wikipediaRandomCommand = randomPageCommand "Wikipedia" "https://en.wikipedia.org"
+      wiktionaryRandomCommand = randomPageCommand "Wiktionary" "https://en.wiktionary.org"
   pure $ M.fromList
-    [ ("wprandom", randomPageCommand "Wikipedia" "https://en.wikipedia.org")
-    , ("wtrandom", randomPageCommand "Wiktionary" "https://en.wiktionary.org")
+    [ ("wprandom", wikipediaRandomCommand)
+    , ("wtrandom", wiktionaryRandomCommand)
+    , ("wʃrandom", wiktionaryRandomCommand)
     ]
