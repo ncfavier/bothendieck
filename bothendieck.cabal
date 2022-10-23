@@ -66,6 +66,7 @@ executable bothendieck
     optparse-applicative ^>= 0.16,
     process ^>= 1.6,
     regex-tdfa ^>= 1.3,
+    scalpel ^>= 0.6,
     tagsoup ^>= 0.14,
     text ^>= 1.2,
     tomland ^>= 1.3,
