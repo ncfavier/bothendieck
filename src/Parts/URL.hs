@@ -74,7 +74,7 @@ urlTitleInit = do
     _ -> pure False
 
 titleScraper :: Scraper Text Text
-titleScraper = attr "content" ("meta" @: ["property" @= "og:title"]) <|> text (tagSelector "title")
+titleScraper =  last <$> texts (tagSelector "title") <|> attr "content" ("meta" @: ["property" @= "og:title"])
 
 -- | Fetches the HTML title of a URL and also returns the canonical URL (after performing any redirections).
 fetchUrlTitle :: MonadIO m => Text -> m (Maybe Text, Text)
