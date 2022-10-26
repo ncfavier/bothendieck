@@ -1,5 +1,6 @@
 module Parts.URL (urlTitleInit, fetchUrlTitle) where
 
+import Control.Applicative
 import Control.Monad.IO.Class
 import Data.ByteString.Char8 qualified as B8
 import Data.ByteString.Encoding qualified as BE
@@ -20,8 +21,7 @@ import Network.IRC.Client
 import Network.Socket
 import Network.URI
 import Text.Html.Encoding.Detection
-import Text.HTML.TagSoup
-import Text.HTML.TagSoup.Match
+import Text.HTML.Scalpel hiding (matches)
 import Text.Regex.TDFA
 
 import Utils
@@ -73,6 +73,9 @@ urlTitleInit = do
         replyTo src (ircBold <> "> " <> ircReset <> truncateWithEllipsis maxTitleLength title)
     _ -> pure False
 
+titleScraper :: Scraper Text Text
+titleScraper = attr "content" ("meta" @: ["property" @= "og:title"]) <|> text (tagSelector "title")
+
 -- | Fetches the HTML title of a URL and also returns the canonical URL (after performing any redirections).
 fetchUrlTitle :: MonadIO m => Text -> m (Maybe Text, Text)
 fetchUrlTitle url = liftIO do
@@ -91,9 +94,6 @@ fetchUrlTitle url = liftIO do
           , detectBom body
           , detectMetaCharset . BL.take 1024 $ body
           ]
-        let tags = canonicalizeTags . parseTags . BE.decode encoding $ BL.toStrict body
-            title = innerText . takeWhile (not . tagCloseNameLit "title") . dropWhile (not . tagOpenNameLit "title") $ tags
-        pure $ case T.words title of
-          [] -> Nothing
-          ws -> Just (T.unwords ws)
+        let title = scrapeStringLike (BE.decode encoding $ BL.toStrict body) titleScraper
+        pure $ (T.unwords . T.words) <$> title
       _ -> pure Nothing
