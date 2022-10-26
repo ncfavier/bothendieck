@@ -55,7 +55,7 @@ evalInit = do
                     <> " MiB; software: " <> unwordsOrNone (available desc))
         | otherwise = replyTo src ("no such evaluator " <> e)
       handler (src@Channel{}, False, msg)
-        | (e, T.stripPrefix ">" -> Just (T.strip -> input)) <- T.breakOn ">" msg
+        | (e, T.stripPrefix ">" -> Just (T.strip . T.replace "↵" "\n" -> input)) <- T.breakOn ">" msg
         , not (T.null input)
         , Just (_desc, path) <- evaluators M.!? e
         = True <$ do

@@ -3,7 +3,7 @@ A simple IRC bot based on the [`irc-client`](https://hackage.haskell.org/package
 ## Features
 
 - [URL titles](https://github.com/ncfavier/bothendieck/blob/main/src/Parts/URL.hs).
-- [Evaluators](https://github.com/ncfavier/bothendieck/blob/main/src/Parts/Eval.hs) for a bunch of languages, running in a VM. Uses [qeval](https://github.com/tilpner/qeval). Syntax: `haskell> 42`.
+- [Evaluators](https://github.com/ncfavier/bothendieck/blob/main/src/Parts/Eval.hs) for a bunch of languages, running in a VM. Uses [qeval](https://github.com/tilpner/qeval). Syntax: `haskell> 42`. Use `↵` (compose + return) to insert newlines.
 - [Wikimedia](https://github.com/ncfavier/bothendieck/blob/main/src/Parts/Wikimedia.hs):
   - `.wp ARTICLE` prints a summary of the given article on Wikipedia.
   - `.wprandom [CATEGORY]` prints a link to a random Wikipedia article.
