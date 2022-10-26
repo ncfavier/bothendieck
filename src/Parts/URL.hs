@@ -95,5 +95,5 @@ fetchUrlTitle url = liftIO do
           , detectMetaCharset . BL.take 1024 $ body
           ]
         let title = scrapeStringLike (BE.decode encoding $ BL.toStrict body) titleScraper
-        pure $ (T.unwords . T.words) <$> title
+        pure $ T.unwords . T.words <$> title
       _ -> pure Nothing

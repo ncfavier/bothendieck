@@ -47,6 +47,7 @@
     devShells.default = pkgs.haskellPackages.shellFor {
       packages = ps: [ ps.bothendieck ];
       EVALUATORS = evaluators;
+      buildInputs = with pkgs.haskellPackages; [ cabal-install haskell-language-server ];
     };
   }) // {
     overlays.default = overlay;
