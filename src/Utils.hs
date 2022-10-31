@@ -16,7 +16,8 @@ import System.Timeout
 -- one of them returns True.
 type MessageHandler s t = (Source t, Bool, t) -> IRC s Bool
 
-type Commands s = Map Text (Source Text -> [Text] -> IRC s ())
+type Command s = Source Text -> [Text] -> IRC s ()
+type Commands s = Map Text (Command s)
 
 _PrivmsgNoCTCP :: Prism' (Message a) (Target a, a)
 _PrivmsgNoCTCP = _Privmsg . aside _Right

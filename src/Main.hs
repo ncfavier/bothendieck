@@ -15,6 +15,7 @@ import Options.Applicative hiding (action)
 import Toml qualified
 
 import Parts.Eval
+import Parts.Translate
 import Parts.URL
 import Parts.Wikimedia
 import Utils
@@ -51,14 +52,15 @@ main = do
     Just passFile -> liftIO $ Just <$> T.readFile passFile
     _ -> pure (password config)
   (evalHandler, evalCommands) <- evalInit
+  translateCommands <- translateInit
   urlTitleHandler <- urlTitleInit
   wikimediaCommands <- wikimediaInit
   let getConnection h p
         | tls config = tlsConnection (WithDefaultConfig h p)
         | otherwise = plainConnection h p
       authenticate pass = send $ Privmsg "NickServ" $ Right $ T.unwords ["IDENTIFY", nick config, pass]
-      commands = mconcat [evalCommands, wikimediaCommands]
-      commandHandler (src@(Channel _channel _nick), False, msg)
+      commands = mconcat [evalCommands, translateCommands, wikimediaCommands]
+      commandHandler (src@Channel{}, False, msg)
         | Just (cmd:args) <- T.words <$> T.stripPrefix (commandPrefix config) msg
         , Just runCommand <- commands M.!? cmd
         = True <$ runCommand src args

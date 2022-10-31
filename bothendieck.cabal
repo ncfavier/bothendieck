@@ -37,6 +37,7 @@ executable bothendieck
   main-is: Main.hs
   other-modules:
     Parts.Eval
+    Parts.Translate
     Parts.URL
     Parts.Wikimedia
     Utils

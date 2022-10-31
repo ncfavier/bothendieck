@@ -8,6 +8,7 @@ A simple IRC bot based on the [`irc-client`](https://hackage.haskell.org/package
   - `.wp ARTICLE` prints a summary of the given article on Wikipedia.
   - `.wprandom [CATEGORY]` prints a link to a random Wikipedia article.
   - `.wtrandom [CATEGORY|-l LANGUAGE]` prints a link to a random Wiktionary entry.
+- [Translate](https://github.com/ncfavier/bothendieck/blob/main/src/Parts/Translate.hs): uses [translate-shell](https://github.com/soimort/translate-shell) (backed by Google Translate). `.tr[ans[late]] [[source]:[target]] text`
 
 ## Usage
 

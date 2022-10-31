@@ -33,10 +33,11 @@
       overlays = [ overlay ];
     };
     evaluators = qeval.legacyPackages.${system}.evaluators.all;
-    bothendieck = pkgs.callPackage ({ runCommand, haskellPackages, makeWrapper, evaluators }:
+    bothendieck = pkgs.callPackage ({ lib, runCommand, haskellPackages, makeWrapper, evaluators, translate-shell }:
       runCommand "bothendieck" { nativeBuildInputs = [ makeWrapper ]; } ''
         makeWrapper ${haskellPackages.bothendieck}/bin/bothendieck "$out/bin/bothendieck" \
-          --set EVALUATORS ${evaluators}
+          --set EVALUATORS ${evaluators} \
+          --prefix PATH : ${lib.makeBinPath [ translate-shell ]}
       ''
     ) { inherit evaluators; };
   in {
@@ -47,7 +48,11 @@
     devShells.default = pkgs.haskellPackages.shellFor {
       packages = ps: [ ps.bothendieck ];
       EVALUATORS = evaluators;
-      buildInputs = with pkgs.haskellPackages; [ cabal-install haskell-language-server ];
+      buildInputs = with pkgs; [
+        haskellPackages.cabal-install
+        haskellPackages.haskell-language-server
+        translate-shell
+      ];
     };
   }) // {
     overlays.default = overlay;
