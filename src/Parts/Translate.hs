@@ -1,7 +1,7 @@
 module Parts.Translate (translateInit) where
 
+import Control.Lens
 import Control.Monad.IO.Class
-import Data.List.Extra
 import Data.Map qualified as M
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -20,7 +20,7 @@ langs = "^" <> lang <> ":" <> lang <> "$"
 
 parseArgs :: [Text] -> (Text, [Text]) -- ("[source]:[target]", words)
 parseArgs (l:ws) | l =~ langs = (l, ws)
-parseArgs (unsnoc -> Just (ws, l)) | l =~ langs = (l, ws)
+parseArgs (ws :> l) | l =~ langs = (l, ws)
 parseArgs ws = (":", ws)
 
 translateCommand :: Command s
