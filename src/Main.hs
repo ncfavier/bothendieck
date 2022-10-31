@@ -14,6 +14,7 @@ import Network.IRC.Client as IRC hiding (server, port, nick, password)
 import Options.Applicative hiding (action)
 import Toml qualified
 
+import Parts.Compliment
 import Parts.Eval
 import Parts.Translate
 import Parts.URL
@@ -51,6 +52,7 @@ main = do
   maybePassword <- case passwordFile options of
     Just passFile -> liftIO $ Just <$> T.readFile passFile
     _ -> pure (password config)
+  complimentCommands <- complimentInit
   (evalHandler, evalCommands) <- evalInit
   translateCommands <- translateInit
   urlTitleHandler <- urlTitleInit
@@ -59,7 +61,7 @@ main = do
         | tls config = tlsConnection (WithDefaultConfig h p)
         | otherwise = plainConnection h p
       authenticate pass = send $ Privmsg "NickServ" $ Right $ T.unwords ["IDENTIFY", nick config, pass]
-      commands = mconcat [evalCommands, translateCommands, wikimediaCommands]
+      commands = mconcat [complimentCommands, evalCommands, translateCommands, wikimediaCommands]
       commandHandler (src@Channel{}, False, msg)
         | Just (cmd:args) <- T.words <$> T.stripPrefix (commandPrefix config) msg
         , Just runCommand <- commands M.!? cmd
