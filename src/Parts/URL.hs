@@ -14,7 +14,7 @@ import Data.Text.IDN.IDNA
 import Network.HTTP.Client
 import Network.HTTP.Client.Restricted
 import Network.HTTP.Client.TLS
-import Network.HTTP.Media
+import Network.HTTP.Media hiding ((//))
 import Network.HTTP.Simple hiding (httpLbs, withResponse)
 import Network.IP.Addr
 import Network.IRC.Client
@@ -73,8 +73,12 @@ urlTitleInit = do
         replyTo src (ircBold <> "> " <> ircReset <> truncateWithEllipsis maxTitleLength title)
     _ -> pure False
 
+-- Some websites output a first <title> tag containing a compability message before the actual <title>,
+-- so take the last one.
 titleScraper :: Scraper Text Text
-titleScraper =  last <$> texts (tagSelector "title") <|> attr "content" ("meta" @: ["property" @= "og:title"])
+titleScraper =  last <$> texts ("head" // "title")
+            <|> last <$> texts "title"
+            <|> attr "content" ("meta" @: ["property" @= "og:title"])
 
 -- | Fetches the HTML title of a URL and also returns the canonical URL (after performing any redirections).
 fetchUrlTitle :: MonadIO m => Text -> m (Maybe Text, Text)
