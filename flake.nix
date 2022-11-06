@@ -32,7 +32,9 @@
       inherit system;
       overlays = [ overlay ];
     };
-    evaluators = qeval.legacyPackages.${system}.evaluators.all;
+    evaluators = (qeval.legacyPackages.${system}.override {
+      qemu = pkgs.qemu_kvm;
+    }).evaluators.all;
     bothendieck = pkgs.callPackage ({ lib, runCommand, haskellPackages, makeWrapper, evaluators, translate-shell }:
       runCommand "bothendieck" { nativeBuildInputs = [ makeWrapper ]; } ''
         makeWrapper ${haskellPackages.bothendieck}/bin/bothendieck "$out/bin/bothendieck" \
