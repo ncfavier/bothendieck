@@ -1,4 +1,4 @@
-module Parts.Wikimedia where
+module Parts.Wikimedia (wikimediaInit) where
 
 import Control.Monad.Extra
 import Data.Map qualified as M
@@ -34,7 +34,7 @@ wikimediaInit = do
             summary = scrape scraper . parseTags . T.decodeUtf8 $ getResponseBody response
             url = T.pack . show . getUri $ getOriginalRequest response
         whenJust summary \ s -> do
-          replyTo src (truncateWithEllipsis 400 s)
+          replyTo src (limitOutput s)
         replyTo src ("[" <> url <> "]")
   pure $ M.fromList
     [ ("wp", wikipediaSummaryCommand)

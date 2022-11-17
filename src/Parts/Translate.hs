@@ -11,9 +11,6 @@ import Text.Regex.TDFA
 
 import Utils
 
-maxOutputLength :: Int
-maxOutputLength = 400
-
 langs :: Text
 langs = "^" <> lang <> ":" <> lang <> "$"
   where lang = "[[:alpha:]-]{0,20}"
@@ -31,7 +28,7 @@ translateCommand src args = do
                 <> (if T.null source then [] else ["-s", T.unpack source])
                 <> (if T.null target then [] else ["-t", T.unpack target])
       output <- liftIO $ T.pack . takeWhile (/= '\n') <$> readProcess "trans" (flags <> ["--", T.unpack (T.unwords ws)]) ""
-      replyTo src (truncateWithEllipsis maxOutputLength output)
+      replyTo src (limitOutput output)
     _ -> replyTo src "usage: translate [[source]:[target]] text | translate text [[source]:[target]]"
 
 translateInit :: IO (Commands s)

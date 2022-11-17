@@ -34,8 +34,10 @@ forkWorker action = fork do
   s <- getIRCState
   void . liftIO . timeout 15_000_000 $ runIRCAction action s
 
-ircBold, ircReset :: Text
+ircBold, ircItalic, ircUnderline, ircReset :: Text
 ircBold = T.singleton '\x02'
+ircItalic = T.singleton '\x1D'
+ircUnderline = T.singleton '\x1F'
 ircReset = T.singleton '\x0F'
 
 unwordsOrNone :: [Text] -> Text
@@ -45,3 +47,9 @@ unwordsOrNone ws = T.unwords ws
 truncateWithEllipsis :: Int -> Text -> Text
 truncateWithEllipsis n t | T.length t > n = T.take (n - 1) t <> "…"
                          | otherwise = t
+
+maxOutputLength :: Int
+maxOutputLength = 400
+
+limitOutput :: Text -> Text
+limitOutput = truncateWithEllipsis maxOutputLength

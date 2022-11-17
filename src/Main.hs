@@ -2,7 +2,6 @@ module Main where
 
 import Control.Lens
 import Control.Monad.Extra
-import Control.Monad.IO.Class
 import Data.Foldable
 import Data.Map qualified as M
 import Data.Text (Text)
@@ -16,6 +15,7 @@ import Toml qualified
 
 import Parts.Compliment
 import Parts.Eval
+import Parts.MerriamWebster
 import Parts.Translate
 import Parts.URL
 import Parts.Wikimedia
@@ -23,7 +23,7 @@ import Utils
 
 data Options = Options
   { configFile :: FilePath
-  , passwordFile :: Maybe FilePath
+  , extraConfigFiles :: [FilePath]
   , verbose :: Bool
   }
 
@@ -36,24 +36,24 @@ data Config = Config
   , realName :: Text
   , channels :: [Text]
   , commandPrefix :: Text
+  , merriamWebsterKey :: Maybe Text
   } deriving (Generic)
 
 parseOptions :: Parser Options
 parseOptions = do
   configFile <- strOption (long "config" <> short 'c' <> metavar "PATH" <> help "Configuration file to use" <> value "config.toml" <> showDefault)
-  passwordFile <- optional $ strOption (long "password-file" <> short 'p' <> metavar "PATH" <> help "File containing the NickServ password to use")
+  extraConfigFiles <- many $ strOption (long "extra-config" <> short 'C' <> metavar "PATH" <> help "Extra configuration files")
   verbose <- switch (long "verbose" <> short 'v' <> help "Log every IRC message to standard output")
   pure Options{..}
 
 main :: IO ()
 main = do
   options <- execParser (info (parseOptions <**> helper) mempty)
-  config <- Toml.decodeFile Toml.genericCodec (configFile options)
-  maybePassword <- case passwordFile options of
-    Just passFile -> liftIO $ Just <$> T.readFile passFile
-    _ -> pure (password config)
+  toml <- T.unlines <$> traverse T.readFile ([configFile options] <> extraConfigFiles options)
+  let config = either (error . T.unpack . Toml.prettyTomlDecodeErrors) id $ Toml.decodeExact Toml.genericCodec toml
   complimentCommands <- complimentInit
   (evalHandler, evalCommands) <- evalInit
+  merriamWebsterCommands <- merriamWebsterInit (merriamWebsterKey config)
   translateCommands <- translateInit
   urlTitleHandler <- urlTitleInit
   wikimediaCommands <- wikimediaInit
@@ -61,7 +61,7 @@ main = do
         | tls config = tlsConnection (WithDefaultConfig h p)
         | otherwise = plainConnection h p
       authenticate pass = send $ Privmsg "NickServ" $ Right $ T.unwords ["IDENTIFY", nick config, pass]
-      commands = mconcat [complimentCommands, evalCommands, translateCommands, wikimediaCommands]
+      commands = mconcat [complimentCommands, evalCommands, merriamWebsterCommands, translateCommands, wikimediaCommands]
       commandHandler (src@Channel{}, False, msg)
         | Just (cmd:args) <- T.words <$> T.stripPrefix (commandPrefix config) msg
         , Just runCommand <- commands M.!? cmd
@@ -73,7 +73,7 @@ main = do
       conn = getConnection (encodeUtf8 (server config)) (fromIntegral (port config))
            & username .~ nick config
            & realname .~ realName config
-           & onconnect .~ (defaultOnConnect >> for_ maybePassword authenticate)
+           & onconnect .~ (defaultOnConnect >> for_ (password config) authenticate)
            & logfunc .~ (if verbose options then stdoutLogger else noopLogger)
       cfg  = defaultInstanceConfig (nick config)
            & IRC.channels .~ Main.channels config

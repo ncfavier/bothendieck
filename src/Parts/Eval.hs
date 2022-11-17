@@ -29,9 +29,6 @@ data Desc = Desc
   , available :: [Text]
   } deriving (Generic, FromJSON)
 
-maxOutputLength :: Int
-maxOutputLength = 400
-
 maxOutputLines :: Int
 maxOutputLines = 5
 
@@ -66,7 +63,7 @@ evalInit = do
             request <- parseRequestThrow "https://0x0.st" >>= formDataBody
               [partFileRequestBody "file" "-" $ RequestBodyBS $ T.encodeUtf8 output]
             response <- httpBS request
-            replyTo src $ T.unlines (take maxOutputLines . T.lines $ truncateWithEllipsis maxOutputLength output)
+            replyTo src $ T.unlines (take maxOutputLines . T.lines $ limitOutput output)
                        <> ircBold <> "[" <> truncateWithEllipsis 100 (T.strip . T.decodeUtf8 $ getResponseBody response) <> "]" <> ircReset
       handler _ = pure False
   pure (handler, M.singleton "eval" evalCommand)

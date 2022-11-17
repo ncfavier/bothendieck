@@ -32,9 +32,6 @@ maxUrls = 3
 maxResponseSize :: Int
 maxResponseSize = 10 * 1024 * 1024 * 1024
 
-maxTitleLength :: Int
-maxTitleLength = 300
-
 urlRegex :: Text
 urlRegex = "https?://[^[:space:]]+"
 
@@ -70,7 +67,7 @@ urlTitleInit = do
     Channel _channel _nick -> True <$ do
       let urls = take maxUrls . map cleanUpURL $ getAllTextMatches (msg =~ urlRegex)
       for_ urls \ url -> fst <$> fetchUrlTitle url >>= traverse \ title -> do
-        replyTo src (ircBold <> "> " <> ircReset <> truncateWithEllipsis maxTitleLength title)
+        replyTo src $ limitOutput $ ircBold <> "> " <> ircReset <> title
     _ -> pure False
 
 -- Some websites output a first <title> tag containing a compability message before the actual <title>,

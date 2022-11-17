@@ -38,6 +38,7 @@ executable bothendieck
   other-modules:
     Parts.Compliment
     Parts.Eval
+    Parts.MerriamWebster
     Parts.Translate
     Parts.URL
     Parts.Wikimedia
