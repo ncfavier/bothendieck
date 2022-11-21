@@ -31,7 +31,7 @@ instance FromJSON Entry where
     Object entry <- pure v
     Object hwi <- entry .: "hwi"
     headword <- hwi .: "hw"
-    function <- entry .: "fl"
+    function <- entry .:? "fl" .!= ""
     definitions <- entry .:? "shortdef" .!= []
     et <- entry .:? "et" .!= []
     let etymology = case et of
@@ -69,7 +69,7 @@ merriamWebsterInit (Just key) = do
               Just entry -> replyTo src $ limitOutput $
                 ircBold <> T.replace "*" "" (headword entry) <> ircReset
                 <> (if n > 1 then " (" <> T.pack (show entryNumber) <> "/" <> T.pack (show n) <> ")" else "")
-                <> " " <> ircUnderline <> function entry <> ircReset
+                <> (if T.null (function entry) then "" else " " <> ircUnderline <> function entry <> ircReset)
                 <> " : " <> (if showEtymology then fromMaybe "no etymology" (renderTokens <$> etymology entry) else T.intercalate " | " (definitions entry))
               _ -> replyTo src "invalid entry"
       defineCommand = wordCommand False
