@@ -35,8 +35,9 @@ maxResponseSize = 10 * 1024 * 1024 * 1024
 urlRegex :: Text
 urlRegex = "https?://[^[:space:]]+"
 
+-- TODO do this properly...
 cleanUpURL :: Text -> Text
-cleanUpURL = T.dropWhileEnd (`T.elem` ",.:;!?\">")
+cleanUpURL url = T.dropWhileEnd (`T.elem` (",.:;!?\">" <> if '(' `T.elem` url then "" else ")")) url
 
 -- | Fixes the encoding of a Unicode hostname from percent-encoding (as a result of `escapeURIString`) to IDNA.
 fixHost :: Request -> Request
