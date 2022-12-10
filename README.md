@@ -11,7 +11,8 @@ A simple IRC bot based on the [`irc-client`](https://hackage.haskell.org/package
 - [Merriam-Webster](https://github.com/ncfavier/bothendieck/blob/main/src/Parts/MerriamWebster.hs) dictionary:
   - `.define [-e ENTRY] WORD`
   - `.etymology [-e ENTRY] WORD`
-- [Translate](https://github.com/ncfavier/bothendieck/blob/main/src/Parts/Translate.hs): uses [translate-shell](https://github.com/soimort/translate-shell) (backed by Google Translate). `.tr[ans[late]] [[source]:[target]] text`
+- [Translate](https://github.com/ncfavier/bothendieck/blob/main/src/Parts/Translate.hs): uses [translate-shell](https://github.com/soimort/translate-shell) (backed by Google Translate). `.tr[ans[late]] [[SOURCE]:[TARGET]] TEXT`
+- [Wolfram|Alpha](https://github.com/ncfavier/bothendieck/blob/main/src/Parts/WolframAlpha.hs): queries [Wolfram|Alpha](https://www.wolframalpha.com/input) for answers. `.(wa|wolfram[alpha]) QUERY`
 - [Surreal compliments](https://github.com/ncfavier/bothendieck/blob/main/src/Parts/Compliment.hs) extracted from http://www.madsci.org/cgi-bin/lynn/jardin/SCG. `.compliment [nick]`
 
 ## Usage

@@ -41,6 +41,7 @@ executable bothendieck
     Parts.MerriamWebster
     Parts.Translate
     Parts.URL
+    Parts.WolframAlpha
     Parts.Wikimedia
     Utils
   build-depends:

@@ -1,10 +1,11 @@
-module Utils where
+module Utils (module Utils, module Data.Function) where
 
 import Control.Applicative
 import Control.Concurrent
 import Control.Lens
 import Control.Monad
 import Control.Monad.IO.Class
+import Data.Function
 import Data.Map (Map)
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -53,3 +54,6 @@ maxOutputLength = 400
 
 limitOutput :: Text -> Text
 limitOutput = truncateWithEllipsis maxOutputLength
+
+(?=) :: a -> b -> (a, Maybe b)
+k ?= v = (k, Just v)

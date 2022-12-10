@@ -18,6 +18,7 @@ import Parts.Eval
 import Parts.MerriamWebster
 import Parts.Translate
 import Parts.URL
+import Parts.WolframAlpha
 import Parts.Wikimedia
 import Utils
 
@@ -37,6 +38,7 @@ data Config = Config
   , channels :: [Text]
   , commandPrefix :: Text
   , merriamWebsterKey :: Maybe Text
+  , wolframAlphaKey :: Maybe Text
   } deriving (Generic)
 
 parseOptions :: Parser Options
@@ -56,12 +58,13 @@ main = do
   merriamWebsterCommands <- merriamWebsterInit (merriamWebsterKey config)
   translateCommands <- translateInit
   urlTitleHandler <- urlTitleInit
+  wolframAlphaCommands <- wolframAlphaInit (wolframAlphaKey config)
   wikimediaCommands <- wikimediaInit
   let getConnection h p
         | tls config = tlsConnection (WithDefaultConfig h p)
         | otherwise = plainConnection h p
       authenticate pass = send $ Privmsg "NickServ" $ Right $ T.unwords ["IDENTIFY", nick config, pass]
-      commands = mconcat [complimentCommands, evalCommands, merriamWebsterCommands, translateCommands, wikimediaCommands]
+      commands = mconcat [complimentCommands, evalCommands, merriamWebsterCommands, translateCommands, wolframAlphaCommands, wikimediaCommands]
       commandHandler (src@Channel{}, False, msg)
         | Just (cmd:args) <- T.words <$> T.stripPrefix (commandPrefix config) msg
         , Just runCommand <- commands M.!? cmd

@@ -2,7 +2,6 @@ module Parts.MerriamWebster (merriamWebsterInit) where
 
 import Control.Applicative
 import Data.Aeson
-import Data.Function
 import Data.List.Extra
 import Data.Map qualified as M
 import Data.Maybe
@@ -58,7 +57,7 @@ merriamWebsterInit (Just key) = do
               "-e":(readMaybe . T.unpack -> Just e):rest -> (e, rest)
               _ -> (1, args)
         let request = parseRequestThrow_ ("https://dictionaryapi.com/api/v3/references/collegiate/json/" <> T.unpack query)
-                    & setRequestQueryString [("key", Just (T.encodeUtf8 key))]
+                    & setRequestQueryString ["key" ?= T.encodeUtf8 key]
         response <- httpJSON request
         case getResponseBody response of
           DidYouMean [] -> replyTo src "no results"
