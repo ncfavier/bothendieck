@@ -2,11 +2,11 @@
   "nodes": {
     "flake-utils": {
       "locked": {
-        "lastModified": 1659877975,
-        "narHash": "sha256-zllb8aq3YO3h8B/U0/J1WBgAL8EX5yWf5pMj3G0NAmc=",
+        "lastModified": 1667395993,
+        "narHash": "sha256-nuEHfE/LcWyuSWnS8t12N1wc105Qtau+/OdUAjtQ0rA=",
         "owner": "numtide",
         "repo": "flake-utils",
-        "rev": "c0e246b9b83f637f4681389ecabcb2681b4f3af0",
+        "rev": "5aed5285a952e0b949eb3ba02c12fa4fcfef535f",
         "type": "github"
       },
       "original": {
@@ -17,27 +17,26 @@
     "html-charset": {
       "flake": false,
       "locked": {
-        "lastModified": 1663858969,
-        "narHash": "sha256-5px0cvroYmG4IJs30fgvIrUTDTCejGnq6P115fCdV78=",
-        "owner": "ncfavier",
+        "lastModified": 1667321205,
+        "narHash": "sha256-9gUY+5Ply4N/XrNBJEZz7qDOX/h9dyIPTJbHqAqBZvM=",
+        "owner": "dahlia",
         "repo": "html-charset",
-        "rev": "28c723459bd960ab5d4726b3d7bb370f713ef432",
+        "rev": "16c30cbd6c28ffccd2be5b4de31bc508d1cdd908",
         "type": "github"
       },
       "original": {
-        "owner": "ncfavier",
-        "ref": "maintenance",
+        "owner": "dahlia",
         "repo": "html-charset",
         "type": "github"
       }
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1666753130,
-        "narHash": "sha256-Wff1dGPFSneXJLI2c0kkdWTgxnQ416KE6X4KnFkgPYQ=",
+        "lastModified": 1670827406,
+        "narHash": "sha256-nLNk7uiLbhbvb4TVz67XK7+Ezr1zcWYDWmNrWGmEUqA=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "f540aeda6f677354f1e7144ab04352f61aaa0118",
+        "rev": "ffca9ffaaafb38c8979068cee98b2644bd3f14cb",
         "type": "github"
       },
       "original": {
@@ -88,11 +87,11 @@
         "nur": "nur"
       },
       "locked": {
-        "lastModified": 1667523636,
-        "narHash": "sha256-+G1auol87UQUZ7Op4Foc0vrNcKQN77X5aogvJlzxc+g=",
+        "lastModified": 1670849985,
+        "narHash": "sha256-+cggWiuhN007BQYxje3SS46xSJHFShlAevNEc+91aAo=",
         "owner": "ncfavier",
         "repo": "qeval",
-        "rev": "72762352f72c01c0a1a3d3138bb025a4e600d56a",
+        "rev": "e371b351f11675e692569ab00f4fbbbad44c40ab",
         "type": "github"
       },
       "original": {

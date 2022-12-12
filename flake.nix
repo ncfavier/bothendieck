@@ -7,7 +7,7 @@
     qeval.inputs.nixpkgs.follows = "nixpkgs";
     qeval.inputs.flake-utils.follows = "flake-utils";
 
-    html-charset.url = "github:ncfavier/html-charset/maintenance";
+    html-charset.url = "github:dahlia/html-charset";
     html-charset.flake = false;
   };
 
