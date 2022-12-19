@@ -46,17 +46,18 @@ evalInit = do
         replyTo src ("available evaluators: " <> unwordsOrNone names)
       evalCommand src (e:_)
         | Just (desc, _path) <- evaluators M.!? e = do
-          replyTo src ("name: " <> name desc
-                    <> "; aliases: " <> unwordsOrNone (aliases desc)
-                    <> "; memory: " <> T.pack (show (mem desc))
-                    <> " MiB; software: " <> unwordsOrNone (available desc))
+          replyTo src ("name: " <> name desc <>
+                       "; aliases: " <> unwordsOrNone (aliases desc) <>
+                       "; memory: " <> T.pack (show (mem desc)) <>
+                       " MiB; software: " <> unwordsOrNone (available desc))
         | otherwise = replyTo src ("no such evaluator " <> e)
       handler (src@Channel{}, False, msg)
         | (e, T.stripPrefix ">" -> Just (T.strip . T.replace "↵" "\n" -> input)) <- T.breakOn ">" msg
         , not (T.null input)
         , Just (_desc, path) <- evaluators M.!? e
         = True <$ do
-          (_exitCode, T.pack -> output, _err) <- liftIO $ readCreateProcessWithExitCode (proc path [T.unpack input]) ""
+          let p = (proc path [T.unpack input]) { env = Just [("QEVAL_TIME", show (workerTimeout - 1))] }
+          output <- liftIO $ T.pack <$> readCreateProcess p ""
           if T.compareLength output maxOutputLength <= EQ && length (T.lines output) <= maxOutputLines then
             replyTo src output
           else do

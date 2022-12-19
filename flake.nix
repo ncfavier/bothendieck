@@ -11,7 +11,7 @@
     html-charset.flake = false;
   };
 
-  outputs = { self, flake-utils, nixpkgs, html-charset, qeval }: let
+  outputs = inputs@{ self, flake-utils, nixpkgs, html-charset, qeval }: let
     src = builtins.path {
       name = "bothendieck-source";
       path = self;
@@ -32,29 +32,35 @@
       inherit system;
       overlays = [ overlay ];
     };
-    evaluators = (qeval.legacyPackages.${system}.override {
-      qemu = pkgs.qemu_kvm;
-    }).evaluators.all;
-    bothendieck = pkgs.callPackage ({ lib, runCommand, haskellPackages, makeWrapper, evaluators, translate-shell }:
+    qeval = inputs.qeval.legacyPackages.${system}.override {
+      dumbTerminal = true;
+    };
+    bothendieck = pkgs.callPackage ({ lib, runCommand, haskellPackages, makeWrapper, qeval, translate-shell }:
       runCommand "bothendieck" { nativeBuildInputs = [ makeWrapper ]; } ''
+        mkdir -p "$out/bin"
         makeWrapper ${haskellPackages.bothendieck}/bin/bothendieck "$out/bin/bothendieck" \
-          --set EVALUATORS ${evaluators} \
+          --set EVALUATORS ${qeval.all} \
           --prefix PATH : ${lib.makeBinPath [ translate-shell ]}
       ''
-    ) { inherit evaluators; };
+    ) { inherit qeval; };
   in {
     packages = {
-      inherit bothendieck evaluators;
+      inherit bothendieck;
       default = bothendieck;
+      evaluators = qeval.all;
     };
-    devShells.default = pkgs.haskellPackages.shellFor {
-      packages = ps: [ ps.bothendieck ];
-      EVALUATORS = evaluators;
-      buildInputs = with pkgs; [
-        haskellPackages.cabal-install
-        haskellPackages.haskell-language-server
-        translate-shell
-      ];
+    devShells = rec {
+      default = pkgs.haskellPackages.shellFor {
+        packages = ps: [ ps.bothendieck ];
+        buildInputs = with pkgs; [
+          haskellPackages.cabal-install
+          haskellPackages.haskell-language-server
+          translate-shell
+        ];
+      };
+      withEvaluators = default.overrideAttrs (_: {
+        EVALUATORS = qeval.all;
+      });
     };
   }) // {
     overlays.default = overlay;
