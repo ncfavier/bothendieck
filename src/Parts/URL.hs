@@ -84,7 +84,7 @@ titleScraper = asum
       ogType <- meta "og:type"
       ogTitle <- meta "og:title"
       ogDescription <- meta "og:description"
-      (ogTitle <> ": " <> ogDescription) <$ guard (ogType == "article")
+      (ircBold <> ogTitle <> ircReset <> ": " <> ogDescription) <$ guard (ogType == "article")
 
 -- | Fetches the HTML title of a URL and also returns the canonical URL (after performing any redirections).
 fetchUrlTitle :: MonadIO m => Text -> m (Maybe Text, Text)
