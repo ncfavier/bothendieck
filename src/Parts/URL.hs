@@ -1,6 +1,6 @@
 module Parts.URL (urlTitleInit, fetchUrlTitle) where
 
-import Control.Applicative
+import Control.Monad
 import Control.Monad.IO.Class
 import Data.ByteString.Char8 qualified as B8
 import Data.ByteString.Encoding qualified as BE
@@ -71,12 +71,20 @@ urlTitleInit = do
         replyTo src $ limitOutput $ ircBold <> "> " <> ircReset <> title
     _ -> pure False
 
--- Some websites output a first <title> tag containing a compability message before the actual <title>,
--- so take the last one.
 titleScraper :: Scraper Text Text
-titleScraper =  last <$> texts ("head" // "title")
-            <|> last <$> texts "title"
-            <|> attr "content" ("meta" @: ["property" @= "og:title"])
+titleScraper = asum
+  [ article -- for Tweet-like things
+  , last <$> texts ("head" // "title")
+  , last <$> texts "title"
+  , meta "title"
+  , meta "og:title"
+  ] where
+    meta prop = attr "content" ("meta" @: ["property" @= prop])
+    article = do
+      ogType <- meta "og:type"
+      ogTitle <- meta "og:title"
+      ogDescription <- meta "og:description"
+      (ogTitle <> ": " <> ogDescription) <$ guard (ogType == "article")
 
 -- | Fetches the HTML title of a URL and also returns the canonical URL (after performing any redirections).
 fetchUrlTitle :: MonadIO m => Text -> m (Maybe Text, Text)
