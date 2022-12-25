@@ -1,5 +1,6 @@
 module Parts.URL (urlTitleInit, fetchUrlTitle) where
 
+import Control.Applicative
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.ByteString.Char8 qualified as B8
@@ -22,7 +23,7 @@ import Network.Socket
 import Network.URI
 import Text.Html.Encoding.Detection
 import Text.HTML.Scalpel hiding (matches)
-import Text.Regex.TDFA
+import Text.Regex.TDFA hiding (empty)
 
 import Utils
 
@@ -74,11 +75,13 @@ urlTitleInit = do
 titleScraper :: Scraper Text Text
 titleScraper = asum
   [ article -- for Tweet-like things
-  , last <$> texts ("head" // "title")
-  , last <$> texts "title"
+  , maybeLast =<< texts ("head" // "title")
+  , maybeLast =<< texts "title"
   , meta "title"
   , meta "og:title"
   ] where
+    maybeLast [] = empty
+    maybeLast l = pure (last l)
     meta prop = attr "content" ("meta" @: ["property" @= prop])
     article = do
       ogType <- meta "og:type"
