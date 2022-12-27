@@ -14,29 +14,13 @@
         "type": "indirect"
       }
     },
-    "html-charset": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1670854070,
-        "narHash": "sha256-YOh8f4Lr/YJ0rDfjRYB4Q8hP6dTS1Mcqxkandg4RDXk=",
-        "owner": "dahlia",
-        "repo": "html-charset",
-        "rev": "8f9b75daf6cc8976b32cdde879f18c3b4163fd69",
-        "type": "github"
-      },
-      "original": {
-        "owner": "dahlia",
-        "repo": "html-charset",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1671848398,
-        "narHash": "sha256-cJIIPd1kvCI6ne/S0facbiBNH7sZUzk405GfdSJPwZE=",
+        "lastModified": 1672057183,
+        "narHash": "sha256-GN7/10DNNvs1FPj9tlZA2qgNdFuYKKuS3qlHTqAxasQ=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "bb0359be0a1a08c8d74412fe8c69aa2ffb3f477e",
+        "rev": "b139e44d78c36c69bcbb825b20dbfa51e7738347",
         "type": "github"
       },
       "original": {
@@ -87,11 +71,11 @@
         "nur": "nur"
       },
       "locked": {
-        "lastModified": 1671662223,
-        "narHash": "sha256-VdjG+mLfp36HXo0xNw6UFLm4V5YKsA5uHfyGNF/tgbM=",
+        "lastModified": 1671981077,
+        "narHash": "sha256-lHGgGO8IrrrGHA1+izYhq9tZilkSZtTrsEgbiJs8Quk=",
         "owner": "ncfavier",
         "repo": "qeval",
-        "rev": "3413d641105d574341232027702197593a02daeb",
+        "rev": "6e874e04315e8c6ba07e18cfb46cb838dcf45261",
         "type": "github"
       },
       "original": {
@@ -103,7 +87,6 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "html-charset": "html-charset",
         "nixpkgs": "nixpkgs",
         "qeval": "qeval"
       }

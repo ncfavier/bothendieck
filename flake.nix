@@ -6,12 +6,9 @@
     qeval.url = "github:ncfavier/qeval";
     qeval.inputs.nixpkgs.follows = "nixpkgs";
     qeval.inputs.flake-utils.follows = "flake-utils";
-
-    html-charset.url = "github:dahlia/html-charset";
-    html-charset.flake = false;
   };
 
-  outputs = inputs@{ self, flake-utils, nixpkgs, html-charset, qeval }: let
+  outputs = inputs@{ self, flake-utils, nixpkgs, qeval }: let
     src = builtins.path {
       name = "bothendieck-source";
       path = self;
@@ -23,7 +20,6 @@
       haskell = prev.haskell // {
         packageOverrides = final.haskell.lib.packageSourceOverrides {
           bothendieck = src;
-          inherit html-charset;
         };
       };
     };
