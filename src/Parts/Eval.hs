@@ -61,7 +61,7 @@ evalInit = do
             , ("QEVAL_MAX_OUTPUT", "10K")
             ] }
           output <- liftIO $ T.pack <$> readCreateProcess p ""
-          if T.compareLength output maxOutputLength <= EQ && length (T.lines output) <= maxOutputLines then
+          if T.compareLength output maxOutputLength <= EQ && length (filter (not . T.null) $ T.lines output) <= maxOutputLines then
             replyTo src output
           else do
             request <- parseRequestThrow "https://0x0.st" >>= formDataBody
