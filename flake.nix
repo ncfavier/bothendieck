@@ -32,7 +32,10 @@
       dumbTerminal = true;
     };
     bothendieck = pkgs.callPackage ({ lib, runCommand, haskellPackages, makeWrapper, qeval, translate-shell }:
-      runCommand "bothendieck" { nativeBuildInputs = [ makeWrapper ]; } ''
+      runCommand "bothendieck" {
+        nativeBuildInputs = [ makeWrapper ];
+        inherit (haskellPackages.bothendieck) passthru meta;
+      } ''
         mkdir -p "$out/bin"
         makeWrapper ${haskellPackages.bothendieck}/bin/bothendieck "$out/bin/bothendieck" \
           --set EVALUATORS ${qeval.all} \
