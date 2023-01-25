@@ -29,7 +29,9 @@ wikimediaInit = do
       wikipediaRandomCommand = randomPageCommand "Wikipedia" "https://en.wikipedia.org"
       wiktionaryRandomCommand = randomPageCommand "Wiktionary" "https://en.wiktionary.org"
       wikipediaSummaryCommand src args = do
-        response <- httpBS =<< parseRequestThrow ("https://en.wikipedia.org/wiki/" <> T.unpack (T.unwords args))
+        let request = parseRequestThrow_ "https://en.wikipedia.org/wiki"
+                    & setRequestQueryString [ "search" ?= T.encodeUtf8 (T.unwords args) ]
+        response <- httpBS request
         let scraper = text $ "div" @: [hasClass "mw-parser-output"] // "p" @: [notP $ hasClass "mw-empty-elt"] `atDepth` 1
             summary = scrape scraper . parseTags . T.decodeUtf8 $ getResponseBody response
             url = T.pack . show . getUri $ getOriginalRequest response
