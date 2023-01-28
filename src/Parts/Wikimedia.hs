@@ -9,6 +9,7 @@ import Network.HTTP.Simple
 import Network.IRC.Client
 import Text.HTML.Scalpel
 import Text.HTML.TagSoup
+import Text.HTML.TagSoup.Tree
 
 import Parts.URL
 import Utils
@@ -33,7 +34,9 @@ wikimediaInit = do
                     & setRequestQueryString [ "search" ?= T.encodeUtf8 (T.unwords args) ]
         response <- httpBS request
         let scraper = text $ "div" @: [hasClass "mw-parser-output"] // "p" @: [notP $ hasClass "mw-empty-elt"] `atDepth` 1
-            summary = scrape scraper . parseTags . T.decodeUtf8 $ getResponseBody response
+            summary = scrape scraper . flattenTree . transformTree noStyle . tagTree . parseTags . T.decodeUtf8 $ getResponseBody response
+            noStyle (TagBranch "style" _ _) = []
+            noStyle x = [x]
             url = T.pack . show . getUri $ getOriginalRequest response
         whenJust summary \ s -> do
           replyTo src (limitOutput s)
