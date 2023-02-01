@@ -75,7 +75,7 @@ urlTitleInit = do
 titleScraper :: Scraper Text Text
 titleScraper = asum
   [ article -- for Tweet-like things
-  , maybeLast =<< texts ("head" // "title")
+  , maybeLast =<< chroot "head" (texts $ "title" `atDepth` 1)
   , maybeLast =<< texts "title"
   , meta "title"
   , meta "og:title"
