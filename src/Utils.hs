@@ -32,7 +32,7 @@ matchMessageOrAction e =  (False,) <$> matchMessage e
                       <|> (True,) . T.unwords <$> matchCTCP "ACTION" e
 
 workerTimeout :: Int
-workerTimeout = 15 -- seconds
+workerTimeout = 20 -- seconds
 
 forkWorker :: IRC s a -> IRC s ThreadId
 forkWorker action = fork do

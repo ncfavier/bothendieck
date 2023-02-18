@@ -57,7 +57,7 @@ evalInit = do
         , Just (_desc, path) <- evaluators M.!? e
         = True <$ do
           let p = (proc path [T.unpack input]) { env = Just
-            [ ("QEVAL_TIME", show (workerTimeout - 1))
+            [ ("QEVAL_TIME", "15")
             , ("QEVAL_MAX_OUTPUT", "10K")
             ] }
           output <- liftIO $ T.pack <$> readCreateProcess p ""
