@@ -12,6 +12,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Network.IRC.Client hiding (timeout)
 import Network.IRC.Conduit (Target)
+import System.IO
 import System.Timeout
 
 -- | Message handlers are run in sequence on each received message or action until
@@ -37,7 +38,13 @@ workerTimeout = 20 -- seconds
 forkWorker :: IRC s a -> IRC s ThreadId
 forkWorker action = fork do
   s <- getIRCState
-  liftIO . handle @SomeException print . void . timeout (workerTimeout * 1_000_000) $ runIRCAction action s
+  liftIO . handle printExceptions . void . timeout (workerTimeout * 1_000_000) $ runIRCAction action s
+  where
+    printExceptions :: SomeException -> IO ()
+    printExceptions e = do
+      print e
+      hFlush stdout
+      throwIO e
 
 ircBold, ircItalic, ircUnderline, ircReset :: Text
 ircBold = T.singleton '\x02'
