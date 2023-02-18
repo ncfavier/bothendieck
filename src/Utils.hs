@@ -2,6 +2,7 @@ module Utils (module Utils, module Data.Function) where
 
 import Control.Applicative
 import Control.Concurrent
+import Control.Exception
 import Control.Lens
 import Control.Monad
 import Control.Monad.IO.Class
@@ -36,7 +37,7 @@ workerTimeout = 15 -- seconds
 forkWorker :: IRC s a -> IRC s ThreadId
 forkWorker action = fork do
   s <- getIRCState
-  void . liftIO . timeout (workerTimeout * 1_000_000) $ runIRCAction action s
+  liftIO . handle @SomeException print . void . timeout (workerTimeout * 1_000_000) $ runIRCAction action s
 
 ircBold, ircItalic, ircUnderline, ircReset :: Text
 ircBold = T.singleton '\x02'
