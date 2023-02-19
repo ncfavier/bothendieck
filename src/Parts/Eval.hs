@@ -1,5 +1,6 @@
 module Parts.Eval (evalInit) where
 
+import Control.Exception
 import Control.Monad.IO.Class
 import Data.Aeson
 import Data.List
@@ -44,17 +45,17 @@ evalInit = do
         pure (M.fromList [(cmd, (desc, path)) | cmd <- name desc : aliases desc], [name desc])
   let evalCommand src [] = do
         replyTo src ("available evaluators: " <> unwordsOrNone names)
-      evalCommand src (e:_)
-        | Just (desc, _path) <- evaluators M.!? e = do
+      evalCommand src (ev:_)
+        | Just (desc, _path) <- evaluators M.!? ev = do
           replyTo src ("name: " <> name desc <>
                        "; aliases: " <> unwordsOrNone (aliases desc) <>
                        "; memory: " <> T.pack (show (mem desc)) <>
                        " MiB; software: " <> unwordsOrNone (available desc))
-        | otherwise = replyTo src ("no such evaluator " <> e)
+        | otherwise = replyTo src ("no such evaluator " <> ev)
       handler (src@Channel{}, False, msg)
-        | (e, T.stripPrefix ">" -> Just (T.strip . T.replace "↵" "\n" -> input)) <- T.breakOn ">" msg
+        | (ev, T.stripPrefix ">" -> Just (T.strip . T.replace "↵" "\n" -> input)) <- T.breakOn ">" msg
         , not (T.null input)
-        , Just (_desc, path) <- evaluators M.!? e
+        , Just (_desc, path) <- evaluators M.!? ev
         = True <$ do
           let p = (proc path [T.unpack input]) { env = Just
             [ ("QEVAL_TIME", "15")
@@ -66,8 +67,10 @@ evalInit = do
           else do
             request <- parseRequestThrow "http://ix.io" >>= formDataBody
               [partFileRequestBody "f:1" "-" $ RequestBodyBS $ T.encodeUtf8 output]
-            response <- httpBS request
+            more <- liftIO $ try (httpBS request) >>= \case
+              Left (e :: HttpException) -> "there's more but pasting failed" <$ print e
+              Right (response) -> pure $ truncateWithEllipsis 100 (T.strip . T.decodeUtf8 $ getResponseBody response)
             replyTo src $ T.unlines (take maxOutputLines . T.lines $ limitOutput output)
-                       <> ircBold <> "[" <> truncateWithEllipsis 100 (T.strip . T.decodeUtf8 $ getResponseBody response) <> "]" <> ircReset
+                       <> ircBold <> "[" <> more <> "]" <> ircReset
       handler _ = pure False
   pure (handler, M.singleton "eval" evalCommand)

@@ -26,6 +26,7 @@ common common
     NumericUnderscores
     OverloadedStrings
     RecordWildCards
+    ScopedTypeVariables
     TupleSections
     TypeApplications
     ViewPatterns
