@@ -64,8 +64,8 @@ evalInit = do
           if T.compareLength output maxOutputLength <= EQ && length (filter (not . T.null) $ T.lines output) <= maxOutputLines then
             replyTo src output
           else do
-            request <- parseRequestThrow "https://0x0.st" >>= formDataBody
-              [partFileRequestBody "file" "-" $ RequestBodyBS $ T.encodeUtf8 output]
+            request <- parseRequestThrow "http://ix.io" >>= formDataBody
+              [partFileRequestBody "f:1" "-" $ RequestBodyBS $ T.encodeUtf8 output]
             response <- httpBS request
             replyTo src $ T.unlines (take maxOutputLines . T.lines $ limitOutput output)
                        <> ircBold <> "[" <> truncateWithEllipsis 100 (T.strip . T.decodeUtf8 $ getResponseBody response) <> "]" <> ircReset
