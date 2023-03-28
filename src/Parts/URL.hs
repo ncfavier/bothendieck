@@ -41,13 +41,19 @@ cleanUpURL :: Text -> Text
 cleanUpURL url = T.dropWhileEnd (`T.elem` (",.:;!?\">" <> if '(' `T.elem` url then "" else ")")) url
 
 -- | Fixes the encoding of a Unicode hostname from percent-encoding (as a result of `escapeURIString`) to IDNA.
-fixHost :: Request -> Request
-fixHost request = setRequestHost host' request where
+fixHostEncoding :: Request -> Request
+fixHostEncoding request = setRequestHost host' request where
     host' = either (error . show) id
           . toASCII defaultFlags
           . T.pack . unEscapeString
           . B8.unpack . host
           $ request
+
+-- | Rewrites requests from twitter.com to nitter.net to get the tweet's content without needing JavaScript.
+twitterToNitter :: Request -> Request
+twitterToNitter request
+  | host request == "twitter.com" = setRequestHost "nitter.net" request
+  | otherwise = request
 
 -- | Forbids connections to reserved (e.g. local) IP addresses.
 restrictIPs :: AddrInfo -> Maybe ConnectionRestricted
@@ -74,7 +80,7 @@ urlTitleInit = do
 
 titleScraper :: Scraper Text Text
 titleScraper = asum
-  [ article -- for Tweet-like things
+  [ tweetoid
   , maybeLast =<< chroot "head" (texts $ "title" `atDepth` 1)
   , maybeLast =<< texts "title"
   , meta "title"
@@ -83,18 +89,20 @@ titleScraper = asum
     maybeLast [] = empty
     maybeLast l = pure (last l)
     meta prop = attr "content" ("meta" @: ["property" @= prop])
-    article = do
+    tweetoid = do
       ogType <- meta "og:type"
+      guard (ogType `elem` ["article", "photo"])
       ogTitle <- meta "og:title"
       ogDescription <- meta "og:description"
-      (ircBold <> ogTitle <> ircReset <> ": " <> ogDescription) <$ guard (ogType == "article")
+      pure (ircBold <> ogTitle <> ircReset <> ": " <> ogDescription)
 
 -- | Fetches the HTML title of a URL and also returns the canonical URL (after performing any redirections).
 fetchUrlTitle :: MonadIO m => Text -> m (Maybe Text, Text)
 fetchUrlTitle url = liftIO do
   request <- addRequestHeader "Accept-Language" "en,*"
-           . addRequestHeader "User-Agent" "SomeHaskellBot" -- Twitter is picky about this
-           . fixHost
+           . addRequestHeader "User-Agent" "bothendieck (https://github.com/ncfavier/bothendieck)"
+           . twitterToNitter
+           . fixHostEncoding
          <$> parseRequestThrow (T.unpack url)
   manager <- getGlobalManager
   withResponse request manager \ response -> (,T.pack . show . getUri $ getOriginalRequest response) <$> do
