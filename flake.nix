@@ -8,7 +8,7 @@
     qeval.inputs.flake-utils.follows = "flake-utils";
   };
 
-  outputs = inputs@{ self, flake-utils, nixpkgs, qeval }: let
+  outputs = inputs@{ self, flake-utils, nixpkgs, ... }: let
     src = builtins.path {
       name = "bothendieck-source";
       path = self;
@@ -31,29 +31,32 @@
     qeval = inputs.qeval.legacyPackages.${system}.override {
       dumbTerminal = true;
     };
-    bothendieck = pkgs.callPackage ({ lib, runCommand, haskellPackages, makeWrapper, qeval, translate-shell }:
+    bothendieck = pkgs.callPackage ({ lib, runCommand, haskellPackages, makeWrapper, qeval ? null, translate-shell }:
       runCommand "bothendieck" {
         nativeBuildInputs = [ makeWrapper ];
         inherit (haskellPackages.bothendieck) passthru meta;
       } ''
         mkdir -p "$out/bin"
         makeWrapper ${haskellPackages.bothendieck}/bin/bothendieck "$out/bin/bothendieck" \
-          --set EVALUATORS ${qeval.all} \
+          ${lib.optionalString (qeval != null) "--set EVALUATORS ${qeval.all}"} \
           --prefix PATH : ${lib.makeBinPath [ translate-shell ]}
       ''
-    ) { inherit qeval; };
+    ) {};
   in {
     packages = {
       inherit bothendieck;
       default = bothendieck;
       evaluators = qeval.all;
+      bothendieckWithEvaluators = bothendieck.override {
+        inherit qeval;
+      };
     };
     devShells = rec {
       default = pkgs.haskellPackages.shellFor {
         packages = ps: [ ps.bothendieck ];
         buildInputs = with pkgs; [
-          haskellPackages.cabal-install
-          haskellPackages.haskell-language-server
+          cabal-install
+          haskell-language-server
           translate-shell
         ];
       };
