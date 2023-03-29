@@ -91,7 +91,7 @@ titleScraper = asum
     meta prop = attr "content" ("meta" @: ["property" @= prop])
     tweetoid = do
       ogType <- meta "og:type"
-      guard (ogType `elem` ["article", "photo"])
+      guard (ogType `elem` ["article", "photo", "video", "music"])
       ogTitle <- meta "og:title"
       ogDescription <- meta "og:description"
       pure (ircBold <> ogTitle <> ircReset <> ": " <> ogDescription)
