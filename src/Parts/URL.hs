@@ -49,6 +49,11 @@ fixHostEncoding request = setRequestHost host' request where
           . B8.unpack . host
           $ request
 
+-- | Don't propagate cookies sent by the server across requests.
+-- This works around Google's cookie consent pages.
+noCookies :: Request -> Request
+noCookies request = request { cookieJar = Nothing }
+
 -- | Rewrites requests from twitter.com to nitter.net to get the tweet's content without needing JavaScript.
 twitterToNitter :: Request -> Request
 twitterToNitter request
@@ -101,6 +106,7 @@ fetchUrlTitle :: MonadIO m => Text -> m (Maybe Text, Text)
 fetchUrlTitle url = liftIO do
   request <- addRequestHeader "Accept-Language" "en,*"
            . addRequestHeader "User-Agent" "bothendieck (https://github.com/ncfavier/bothendieck)"
+           . noCookies
            . twitterToNitter
            . fixHostEncoding
          <$> parseRequestThrow (T.unpack url)
