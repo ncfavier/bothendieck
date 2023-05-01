@@ -20,6 +20,7 @@ common common
     BlockArguments
     DeriveAnyClass
     DeriveGeneric
+    FlexibleContexts
     ImportQualifiedPost
     LambdaCase
     NamedFieldPuns
@@ -65,6 +66,7 @@ executable bothendieck
     irc-client ^>= 1.1.2.0,
     irc-conduit ^>= 0.3,
     lens >= 5 && < 6,
+    mtl >= 2 && < 3,
     network ^>= 3.1,
     network-ip ^>= 0.3,
     network-uri ^>= 2.6,

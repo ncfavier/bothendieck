@@ -10,7 +10,7 @@ import System.Random
 
 import Utils
 
-complimentCommand :: Command s
+complimentCommand :: Command
 complimentCommand src@(Channel _channel nick) args = do
   let target | n:_ <- args, T.length n < 32 = n
              | otherwise = nick
@@ -18,7 +18,7 @@ complimentCommand src@(Channel _channel nick) args = do
   replyTo src (target <> ": " <> compliment)
 complimentCommand _ _ = pure ()
 
-complimentInit :: IO (Commands s)
+complimentInit :: IO Commands
 complimentInit = pure $ M.singleton "compliment" complimentCommand
 
 compliments :: Vector Text

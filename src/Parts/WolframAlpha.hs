@@ -9,7 +9,7 @@ import Network.IRC.Client
 
 import Utils
 
-wolframAlphaInit :: Maybe Text -> IO (Commands s)
+wolframAlphaInit :: Maybe Text -> IO Commands
 wolframAlphaInit (Just key) = do
   let wolframAlphaCommand src args = do
         let query = T.unwords args

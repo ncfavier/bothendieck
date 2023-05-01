@@ -14,7 +14,7 @@ import Text.HTML.TagSoup.Tree
 import Parts.URL
 import Utils
 
-wikimediaInit :: IO (Commands s)
+wikimediaInit :: IO Commands
 wikimediaInit = do
   let randomPageCommand project baseUrl src args = do
         let (page, anchor) = case args of

@@ -6,3 +6,4 @@ password = "hunter2"
 realName = "bothendieck"
 channels = []
 commandPrefix = "."
+twitterAlternative = "https://nitter.net"

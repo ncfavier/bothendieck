@@ -10,17 +10,32 @@ import Data.Function
 import Data.Map (Map)
 import Data.Text (Text)
 import Data.Text qualified as T
+import GHC.Generics
 import Network.IRC.Client hiding (timeout)
 import Network.IRC.Conduit (Target)
 import System.IO
 import System.Timeout
 
+data Config = Config
+  { server :: Text
+  , tls :: Bool
+  , port :: Int
+  , nick :: Text
+  , password :: Maybe Text
+  , realName :: Text
+  , channels :: [Text]
+  , commandPrefix :: Text
+  , twitterAlternative :: Maybe Text
+  , merriamWebsterKey :: Maybe Text
+  , wolframAlphaKey :: Maybe Text
+  } deriving (Generic)
+
 -- | Message handlers are run in sequence on each received message or action until
 -- one of them returns True.
 type MessageHandler s t = (Source t, Bool, t) -> IRC s Bool
 
-type Command s = Source Text -> [Text] -> IRC s ()
-type Commands s = Map Text (Command s)
+type Command = Source Text -> [Text] -> IRC Config ()
+type Commands = Map Text Command
 
 _PrivmsgNoCTCP :: Prism' (Message a) (Target a, a)
 _PrivmsgNoCTCP = _Privmsg . aside _Right

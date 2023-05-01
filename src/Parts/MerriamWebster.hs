@@ -50,7 +50,7 @@ renderTokens = T.replace "{it}" ircItalic
              . T.replace "{ldquo}" "“"
              . T.replace "{rdquo}" "”"
 
-merriamWebsterInit :: Maybe Text -> IO (Commands s)
+merriamWebsterInit :: Maybe Text -> IO Commands
 merriamWebsterInit (Just key) = do
   let wordCommand showEtymology src args = do
         let (entryNumber, T.unwords -> query) = case args of

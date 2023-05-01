@@ -4,11 +4,9 @@ import Control.Lens
 import Control.Monad.Extra
 import Data.Foldable
 import Data.Map qualified as M
-import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.IO qualified as T
 import Data.Text.Encoding
-import GHC.Generics
 import Network.IRC.Client as IRC hiding (server, port, nick, password)
 import Options.Applicative hiding (action)
 import Toml qualified
@@ -27,19 +25,6 @@ data Options = Options
   , extraConfigFiles :: [FilePath]
   , verbose :: Bool
   }
-
-data Config = Config
-  { server :: Text
-  , tls :: Bool
-  , port :: Int
-  , nick :: Text
-  , password :: Maybe Text
-  , realName :: Text
-  , channels :: [Text]
-  , commandPrefix :: Text
-  , merriamWebsterKey :: Maybe Text
-  , wolframAlphaKey :: Maybe Text
-  } deriving (Generic)
 
 parseOptions :: Parser Options
 parseOptions = do
@@ -79,6 +64,6 @@ main = do
            & onconnect .~ (defaultOnConnect >> for_ (password config) authenticate)
            & logfunc .~ (if verbose options then stdoutLogger else noopLogger)
       cfg  = defaultInstanceConfig (nick config)
-           & IRC.channels .~ Main.channels config
+           & IRC.channels .~ Utils.channels config
            & handlers <>~ [handleMessages]
-  runClient conn cfg ()
+  runClient conn cfg config

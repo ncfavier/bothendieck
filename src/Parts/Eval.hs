@@ -33,7 +33,7 @@ data Desc = Desc
 maxOutputLines :: Int
 maxOutputLines = 5
 
-evalInit :: IO (MessageHandler s Text, Commands s)
+evalInit :: IO (MessageHandler s Text, Commands)
 evalInit = do
   (evaluators, sort -> names) <- lookupEnv "EVALUATORS" >>= \case
     Nothing -> mempty <$ T.hPutStrLn stderr "warning: EVALUATORS is not set"

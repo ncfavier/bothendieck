@@ -20,7 +20,7 @@ parseArgs (l:ws) | l =~ langs = (l, ws)
 parseArgs (ws :> l) | l =~ langs = (l, ws)
 parseArgs ws = (":", ws)
 
-translateCommand :: Command s
+translateCommand :: Command
 translateCommand src args = do
   case parseArgs args of
     (T.splitOn ":" -> [source, target], ws@(_:_)) -> do
@@ -31,7 +31,7 @@ translateCommand src args = do
       replyTo src (limitOutput output)
     _ -> replyTo src "usage: translate [[source]:[target]] text | translate text [[source]:[target]]"
 
-translateInit :: IO (Commands s)
+translateInit :: IO Commands
 translateInit = pure $ M.fromList
   [ ("translate", translateCommand)
   , ("trans", translateCommand)

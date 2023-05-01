@@ -2,6 +2,7 @@ module Parts.URL (urlTitleInit, fetchUrlTitle) where
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.State.Class
 import Control.Monad.IO.Class
 import Data.ByteString.Char8 qualified as B8
 import Data.ByteString.Encoding qualified as BE
@@ -12,17 +13,17 @@ import Data.Maybe
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.IDN.IDNA
-import Network.HTTP.Client
+import Network.HTTP.Client as H
 import Network.HTTP.Client.Restricted
 import Network.HTTP.Client.TLS
 import Network.HTTP.Media hiding ((//))
 import Network.HTTP.Simple hiding (httpLbs, withResponse)
 import Network.IP.Addr
-import Network.IRC.Client
+import Network.IRC.Client hiding (get)
 import Network.Socket
 import Network.URI
 import Text.Html.Encoding.Detection
-import Text.HTML.Scalpel hiding (matches)
+import Text.HTML.Scalpel hiding (Config, matches)
 import Text.Regex.TDFA hiding (empty)
 
 import Utils
@@ -54,11 +55,15 @@ fixHostEncoding request = setRequestHost host' request where
 noCookies :: Request -> Request
 noCookies request = request { cookieJar = Nothing }
 
--- | Rewrites requests from twitter.com to nitter.net to get the tweet's content without needing JavaScript.
-twitterToNitter :: Request -> Request
-twitterToNitter request
-  | host request == "twitter.com" = setRequestHost "nitter.net" request
-  | otherwise = request
+-- | Rewrite requests to Twitter to an alternative host (e.g. a Nitter instance) to bypass JavaScript.
+rewriteTwitter :: Maybe Text -> Request -> Request
+rewriteTwitter (Just alt) request
+  | host request == "twitter.com" = setRequestHost (host altRequest)
+                                  . setRequestPort (H.port altRequest)
+                                  . setRequestSecure (secure altRequest)
+                                  $ request
+  where altRequest = parseRequest_ (T.unpack alt)
+rewriteTwitter _ request = request
 
 -- | Forbids connections to reserved (e.g. local) IP addresses.
 restrictIPs :: AddrInfo -> Maybe ConnectionRestricted
@@ -73,7 +78,7 @@ restrictIPs AddrInfo{addrAddress = SockAddrInet6 _ _ (hostAddress6ToTuple -> (a,
 restrictIPs _ = Just (ConnectionRestricted "forbidden address")
 
 -- | Posts the title of URLs contained in messages from public channels.
-urlTitleInit :: IO (MessageHandler s Text)
+urlTitleInit :: IO (MessageHandler Config Text)
 urlTitleInit = do
   setGlobalManager =<< newManager . fst =<< mkRestrictedManagerSettings (addressRestriction restrictIPs) Nothing Nothing
   pure \ (src, _action, msg) -> case src of
@@ -102,12 +107,12 @@ titleScraper = asum
       pure (ircBold <> ogTitle <> ircReset <> ": " <> ogDescription)
 
 -- | Fetches the HTML title of a URL and also returns the canonical URL (after performing any redirections).
-fetchUrlTitle :: MonadIO m => Text -> m (Maybe Text, Text)
-fetchUrlTitle url = liftIO do
+fetchUrlTitle :: (MonadIO m, MonadState Config m) => Text -> m (Maybe Text, Text)
+fetchUrlTitle url = get >>= \ config -> liftIO do
   request <- addRequestHeader "Accept-Language" "en,*"
            . addRequestHeader "User-Agent" "bothendieck (https://github.com/ncfavier/bothendieck)"
            . noCookies
-           . twitterToNitter
+           . rewriteTwitter (twitterAlternative config)
            . fixHostEncoding
          <$> parseRequestThrow (T.unpack url)
   manager <- getGlobalManager
