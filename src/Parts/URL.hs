@@ -67,14 +67,10 @@ rewriteTwitter _ request = request
 
 -- | Forbids connections to reserved (e.g. local) IP addresses.
 restrictIPs :: AddrInfo -> Maybe ConnectionRestricted
-restrictIPs AddrInfo{addrAddress = SockAddrInet _ (hostAddressToTuple -> (a, b, c, d))} =
-  case ip4Range (ip4FromOctets a b c d) of
-    GeneralIP4 -> Nothing
-    _ -> Just (ConnectionRestricted "forbidden IPv4")
-restrictIPs AddrInfo{addrAddress = SockAddrInet6 _ _ (hostAddress6ToTuple -> (a, b, c, d, e, f, g, h)) _} =
-  case ip6Range (ip6FromWords a b c d e f g h) of
-    GeneralIP6 -> Nothing
-    _ -> Just (ConnectionRestricted "forbidden IPv6")
+restrictIPs AddrInfo{addrAddress = SockAddrInet _ (hostAddressToTuple -> (a, b, c, d))}
+  | GeneralIP4 <- ip4Range (ip4FromOctets a b c d) = Nothing
+restrictIPs AddrInfo{addrAddress = SockAddrInet6 _ _ (hostAddress6ToTuple -> (a, b, c, d, e, f, g, h)) _}
+  | GeneralIP6 <- ip6Range (ip6FromWords a b c d e f g h) = Nothing
 restrictIPs _ = Just (ConnectionRestricted "forbidden address")
 
 -- | Posts the title of URLs contained in messages from public channels.
