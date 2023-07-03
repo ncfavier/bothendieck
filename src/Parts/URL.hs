@@ -6,6 +6,7 @@ import Control.Monad.State.Class
 import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.Class
 import Control.Monad.IO.Class
+import Data.Aeson
 import Data.ByteString.Char8 qualified as B8
 import Data.ByteString.Encoding qualified as BE
 import Data.ByteString.Lazy qualified as BL
@@ -15,6 +16,7 @@ import Data.Maybe
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.IDN.IDNA
+import GHC.Generics
 import Network.Connection (TLSSettings (..))
 import Network.HTTP.Client as H
 import Network.HTTP.Client.Restricted
@@ -58,15 +60,20 @@ fixHostEncoding request = setRequestHost host' request where
 noCookies :: Request -> Request
 noCookies request = request { cookieJar = Nothing }
 
--- | Rewrite requests to Twitter to an alternative host (e.g. a Nitter instance) to bypass JavaScript.
-rewriteTwitter :: Maybe Text -> Request -> Request
-rewriteTwitter (Just alt) request
-  | host request == "twitter.com" = setRequestHost (host altRequest)
-                                  . setRequestPort (H.port altRequest)
-                                  . setRequestSecure (secure altRequest)
-                                  $ request
-  where altRequest = parseRequest_ (T.unpack alt)
-rewriteTwitter _ request = request
+-- | Rewrite requests to Twitter to use a JSON API to bypass JavaScript and login walls.
+rewriteTwitter :: Request -> Maybe Request
+rewriteTwitter request
+  | host request == "twitter.com" || host request == "m.twitter.com"
+  , _:"status":statusId:_ <- pathSegments (getUri request)
+  = Just
+  . setRequestHost (host jsonRequest)
+  . setRequestPort (H.port jsonRequest)
+  . setRequestSecure (secure jsonRequest)
+  . setRequestPath (H.path jsonRequest)
+  . setRequestQueryString [ "id" ?= B8.pack statusId ]
+  $ request
+  | otherwise = Nothing
+  where jsonRequest = parseRequestThrow_ "https://cdn.syndication.twimg.com/tweet-result"
 
 -- | Forbids connections to reserved (e.g. local) IP addresses.
 restrictIPs :: AddrInfo -> Maybe ConnectionRestricted
@@ -111,26 +118,39 @@ titleScraper = asum
       ogDescription <- meta "og:description"
       pure (ircBold <> ogTitle <> ircReset <> ": " <> ogDescription)
 
+getOriginalUri :: Response a -> Text
+getOriginalUri = T.pack . show . getUri . getOriginalRequest
+
+data Tweet = Tweet { text :: Text, user :: TweetUser }
+  deriving (Generic, FromJSON)
+data TweetUser = TweetUser { name :: Text, screen_name :: Text }
+  deriving (Generic, FromJSON)
+
 -- | Fetches the HTML title of a URL and also returns the canonical URL (after performing any redirections).
 fetchUrlTitle :: (MonadIO m, MonadState Config m) => Text -> m (Maybe Text, Text)
-fetchUrlTitle url = get >>= \ config -> liftIO do
+fetchUrlTitle url = liftIO do
   request <- addRequestHeader "Accept-Language" "en,*"
            . addRequestHeader "User-Agent" "bothendieck (https://github.com/ncfavier/bothendieck)"
            . noCookies
-           . rewriteTwitter (twitterAlternative config)
            . fixHostEncoding
          <$> parseRequestThrow (T.unpack url)
-  manager <- getGlobalManager
-  withResponse request manager \ response -> (,T.pack . show . getUri $ getOriginalRequest response) <$> do
-    case mapMaybe (parseAccept @MediaType) $ getResponseHeader "Content-Type" response of
-      ct:_ | ct `matches` "text/html"
-          || ct `matches` "application/xhtml+xml" ->  do
-        body <- brReadSome (getResponseBody response) maxResponseSize
-        encoding <- maybe (return BE.utf8) BE.mkTextEncoding $ asum
-          [ B8.unpack . original <$> ct /. "charset"
-          , detectBom body
-          , detectMetaCharset . BL.take 1024 $ body
-          ]
-        let title = scrapeStringLike (BE.decode encoding $ BL.toStrict body) titleScraper
-        pure $ T.unwords . T.words <$> title
-      _ -> pure Nothing
+  case rewriteTwitter request of
+    Just request' -> do
+      response <- httpJSON request'
+      let Tweet txt (TweetUser name screen_name) = getResponseBody response
+      pure (Just (ircBold <> name <> " (@" <> screen_name <> ")" <> ircReset <> ": " <> txt), getOriginalUri response)
+    Nothing -> do
+      manager <- getGlobalManager
+      withResponse request manager \ response -> (,getOriginalUri response) <$> do
+        case mapMaybe (parseAccept @MediaType) $ getResponseHeader "Content-Type" response of
+          ct:_ | ct `matches` "text/html"
+              || ct `matches` "application/xhtml+xml" ->  do
+            body <- brReadSome (getResponseBody response) maxResponseSize
+            encoding <- maybe (return BE.utf8) BE.mkTextEncoding $ asum
+              [ B8.unpack . original <$> ct /. "charset"
+              , detectBom body
+              , detectMetaCharset . BL.take 1024 $ body
+              ]
+            let title = scrapeStringLike (BE.decode encoding $ BL.toStrict body) titleScraper
+            pure $ T.unwords . T.words <$> title
+          _ -> pure Nothing
