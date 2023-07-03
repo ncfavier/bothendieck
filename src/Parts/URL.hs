@@ -3,6 +3,8 @@ module Parts.URL (urlTitleInit, fetchUrlTitle) where
 import Control.Applicative
 import Control.Monad
 import Control.Monad.State.Class
+import Control.Monad.Trans.Maybe
+import Control.Monad.Trans.Class
 import Control.Monad.IO.Class
 import Data.ByteString.Char8 qualified as B8
 import Data.ByteString.Encoding qualified as BE
@@ -13,6 +15,7 @@ import Data.Maybe
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.IDN.IDNA
+import Network.Connection (TLSSettings (..))
 import Network.HTTP.Client as H
 import Network.HTTP.Client.Restricted
 import Network.HTTP.Client.TLS
@@ -73,15 +76,21 @@ restrictIPs AddrInfo{addrAddress = SockAddrInet6 _ _ (hostAddress6ToTuple -> (a,
   | GeneralIP6 <- ip6Range (ip6FromWords a b c d e f g h) = Nothing
 restrictIPs _ = Just (ConnectionRestricted "forbidden address")
 
+-- | Disable certificate validation.
+tlsSettings :: TLSSettings
+tlsSettings = TLSSettingsSimple True False False
+
 -- | Posts the title of URLs contained in messages from public channels.
 urlTitleInit :: IO (MessageHandler Config Text)
 urlTitleInit = do
-  setGlobalManager =<< newManager . fst =<< mkRestrictedManagerSettings (addressRestriction restrictIPs) Nothing Nothing
+  (managerSettings, _) <- mkRestrictedManagerSettings (addressRestriction restrictIPs) Nothing (Just tlsSettings)
+  setGlobalManager =<< newManager managerSettings
   pure \ (src, _action, msg) -> case src of
     Channel _channel _nick -> True <$ do
       let urls = take maxUrls . map cleanUpURL $ getAllTextMatches (msg =~ urlRegex)
-      for_ urls \ url -> fst <$> fetchUrlTitle url >>= traverse \ title -> do
-        replyTo src $ limitOutput $ ircBold <> "> " <> ircReset <> title
+      for_ urls \ url -> forkWorker $ runMaybeT do
+        (Just title, _) <- fetchUrlTitle url
+        lift $ replyTo src $ limitOutput $ ircBold <> "> " <> ircReset <> title
     _ -> pure False
 
 titleScraper :: Scraper Text Text

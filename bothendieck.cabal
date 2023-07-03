@@ -52,6 +52,7 @@ executable bothendieck
     bytestring >= 0.10 && < 1,
     bytestring-encoding ^>= 0.1,
     case-insensitive ^>= 1.2,
+    connection ^>= 0.3,
     containers ^>= 0.6,
     directory ^>= 1.3,
     extra ^>= 1.7,
@@ -78,4 +79,5 @@ executable bothendieck
     tagsoup ^>= 0.14,
     text ^>= 1.2,
     tomland ^>= 1.3,
+    transformers ^>= 0.5,
     vector ^>= 0.12,
