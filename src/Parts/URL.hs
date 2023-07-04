@@ -1,6 +1,7 @@
 module Parts.URL (urlTitleInit, fetchUrlTitle) where
 
 import Control.Applicative
+import Control.Arrow
 import Control.Monad
 import Control.Monad.State.Class
 import Control.Monad.Trans.Maybe
@@ -12,11 +13,15 @@ import Data.ByteString.Encoding qualified as BE
 import Data.ByteString.Lazy qualified as BL
 import Data.CaseInsensitive (original)
 import Data.Foldable
+import Data.List
 import Data.Maybe
 import Data.Text (Text)
 import Data.Text qualified as T
+import Data.Text.Lazy qualified as LT
+import Data.Text.Lazy.Builder
 import Data.Text.IDN.IDNA
 import GHC.Generics
+import HTMLEntities.Decoder
 import Network.Connection (TLSSettings (..))
 import Network.HTTP.Client as H
 import Network.HTTP.Client.Restricted
@@ -63,7 +68,7 @@ noCookies request = request { cookieJar = Nothing }
 -- | Rewrite requests to Twitter to use a JSON API to bypass JavaScript and login walls.
 rewriteTwitter :: Request -> Maybe Request
 rewriteTwitter request
-  | host request == "twitter.com" || host request == "m.twitter.com"
+  | host request `elem` ["twitter.com", "m.twitter.com"]
   , _:"status":statusId:_ <- pathSegments (getUri request)
   = Just
   . setRequestHost (host jsonRequest)
@@ -121,10 +126,25 @@ titleScraper = asum
 getOriginalUri :: Response a -> Text
 getOriginalUri = T.pack . show . getUri . getOriginalRequest
 
-data Tweet = Tweet { text :: Text, user :: TweetUser }
+data Tweet = Tweet { text :: Text, user :: TweetUser, entities :: TweetEntities, mediaDetails :: Maybe [TweetEntity] }
   deriving (Generic, FromJSON)
 data TweetUser = TweetUser { name :: Text, screen_name :: Text }
   deriving (Generic, FromJSON)
+data TweetEntities = TweetEntities { urls :: [TweetEntity] }
+  deriving (Generic, FromJSON)
+data TweetEntity = TweetEntity { expanded_url :: Text, media_url_https :: Maybe Text, indices :: (Int, Int) }
+  deriving (Generic, FromJSON)
+
+-- | Expands shortened URLs and decodes HTML entities in the tweet's text.
+getTweetText :: Tweet -> Text
+getTweetText Tweet{text, entities, mediaDetails} = LT.toStrict $ toLazyText $ htmlEncodedText $ go spans 0 text
+  where
+    spans = map (indices.head &&& map (liftA2 fromMaybe expanded_url media_url_https))
+          $ groupBy ((==) `on` indices)
+          $ sortOn indices
+          $ urls entities ++ fromMaybe [] mediaDetails
+    go [] _ txt = txt
+    go (((a, b), urls):xs) off txt = T.take (a - off) txt <> T.unwords urls <> go xs b (T.drop (b - off) txt)
 
 -- | Fetches the HTML title of a URL and also returns the canonical URL (after performing any redirections).
 fetchUrlTitle :: (MonadIO m, MonadState Config m) => Text -> m (Maybe Text, Text)
@@ -137,8 +157,9 @@ fetchUrlTitle url = liftIO do
   case rewriteTwitter request of
     Just request' -> do
       response <- httpJSON request'
-      let Tweet txt (TweetUser name screen_name) = getResponseBody response
-      pure (Just (ircBold <> name <> " (@" <> screen_name <> ")" <> ircReset <> ": " <> txt), getOriginalUri response)
+      let t@Tweet { user = TweetUser name screen_name } = getResponseBody response
+          title = ircBold <> name <> " (@" <> screen_name <> ")" <> ircReset <> ": " <> T.unwords (T.words (getTweetText t))
+      pure (Just title, getOriginalUri response)
     Nothing -> do
       manager <- getGlobalManager
       withResponse request manager \ response -> (,getOriginalUri response) <$> do

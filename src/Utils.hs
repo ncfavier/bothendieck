@@ -25,7 +25,6 @@ data Config = Config
   , realName :: Text
   , channels :: [Text]
   , commandPrefix :: Text
-  , twitterAlternative :: Maybe Text
   , merriamWebsterKey :: Maybe Text
   , wolframAlphaKey :: Maybe Text
   } deriving (Generic)
