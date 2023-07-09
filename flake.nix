@@ -54,7 +54,7 @@
     devShells = rec {
       default = pkgs.haskellPackages.shellFor {
         packages = ps: [ ps.bothendieck ];
-        nativeBuildInputs = with pkgs; [
+        buildInputs = with pkgs; [
           cabal-install
           haskell-language-server
           translate-shell

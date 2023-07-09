@@ -62,7 +62,6 @@ main = do
            & username .~ nick config
            & realname .~ realName config
            & onconnect .~ (defaultOnConnect >> for_ (password config) authenticate)
-           & ondisconnect .~ maybe (pure ()) (const reconnect) -- reconnect on all exceptions
            & logfunc .~ (if verbose options then stdoutLogger else noopLogger)
       cfg  = defaultInstanceConfig (nick config)
            & IRC.channels .~ Utils.channels config
