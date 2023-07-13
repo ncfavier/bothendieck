@@ -17,6 +17,8 @@ import Data.List
 import Data.Maybe
 import Data.Text (Text)
 import Data.Text qualified as T
+import Data.Text.Encoding qualified as T
+import Data.Text.Encoding.Error qualified as T
 import Data.Text.Lazy qualified as LT
 import Data.Text.Lazy.Builder
 import Data.Text.IDN.IDNA
@@ -167,11 +169,13 @@ fetchUrlTitle url = liftIO do
           ct:_ | ct `matches` "text/html"
               || ct `matches` "application/xhtml+xml" ->  do
             body <- brReadSome (getResponseBody response) maxResponseSize
-            encoding <- maybe (return BE.utf8) BE.mkTextEncoding $ asum
+            encoding <- traverse BE.mkTextEncoding $ asum
               [ B8.unpack . original <$> ct /. "charset"
               , detectBom body
               , detectMetaCharset . BL.take 1024 $ body
+              -- skip detectEncodingName as it tends to incorrectly guess ASCII
               ]
-            let title = scrapeStringLike (BE.decode encoding $ BL.toStrict body) titleScraper
+            let decode = maybe (T.decodeUtf8With T.lenientDecode) BE.decode encoding
+                title = scrapeStringLike (decode $ BL.toStrict body) titleScraper
             pure $ T.unwords . T.words <$> title
           _ -> pure Nothing
