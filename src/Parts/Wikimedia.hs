@@ -1,6 +1,7 @@
 module Parts.Wikimedia (wikimediaInit) where
 
 import Control.Monad.Extra
+import Control.Monad.IO.Class
 import Data.Map qualified as M
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as T
@@ -22,7 +23,7 @@ wikimediaInit = do
               "-l":(T.toTitle . T.unwords -> lang) -> -- convenience for Wiktionary
                 ("Special:RandomInCategory/" <> lang <> " lemmas", "#" <> T.replace " " "_" lang)
               _ -> ("Special:RandomInCategory/" <> T.unwords args, "")
-        (mtitle, url) <- fetchUrlTitle (baseUrl <> "/wiki/" <> page)
+        (mtitle, url) <- liftIO $ fetchUrlTitle (baseUrl <> "/wiki/" <> page)
         case mtitle of
           Just (T.stripSuffix (" - " <> project) -> Just title) -> do
             replyTo src (ircBold <> title <> ircReset <> " " <> "[" <> url <> anchor <> "]")

@@ -73,6 +73,7 @@ executable bothendieck
     network-ip ^>= 0.3,
     network-uri ^>= 2.6,
     optparse-applicative >= 0.16 && < 1,
+    parallel-io ^>= 0.3,
     process ^>= 1.6,
     random ^>= 1.2,
     regex-tdfa ^>= 1.3,

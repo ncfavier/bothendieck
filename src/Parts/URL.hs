@@ -2,17 +2,15 @@ module Parts.URL (urlTitleInit, fetchUrlTitle) where
 
 import Control.Applicative
 import Control.Arrow
+import Control.Concurrent.ParallelIO.Local
 import Control.Monad
-import Control.Monad.State.Class
-import Control.Monad.Trans.Maybe
-import Control.Monad.Trans.Class
 import Control.Monad.IO.Class
 import Data.Aeson
 import Data.ByteString.Char8 qualified as B8
 import Data.ByteString.Encoding qualified as BE
 import Data.ByteString.Lazy qualified as BL
 import Data.CaseInsensitive (original)
-import Data.Foldable
+import Data.Either
 import Data.List
 import Data.Maybe
 import Data.Text (Text)
@@ -102,9 +100,9 @@ urlTitleInit = do
   pure \ (src, _action, msg) -> case src of
     Channel _channel _nick -> True <$ do
       let urls = take maxUrls . map cleanUpURL $ getAllTextMatches (msg =~ urlRegex)
-      for_ urls \ url -> forkWorker $ runMaybeT do
-        (Just title, _) <- fetchUrlTitle url
-        lift $ replyTo src $ limitOutput $ ircBold <> "> " <> ircReset <> title
+      (errs, titles) <- liftIO $ partitionEithers <$> withPool (length urls) \ pool -> parallelE pool (map fetchUrlTitle urls)
+      sequence_ [replyTo src $ limitOutput $ ircBold <> "> " <> ircReset <> title | (Just title, _) <- titles]
+      liftIO $ mapM_ print errs
     _ -> pure False
 
 titleScraper :: Scraper Text Text
@@ -149,8 +147,8 @@ getTweetText Tweet{text, entities, mediaDetails} = LT.toStrict $ toLazyText $ ht
     go (((a, b), urls):xs) off txt = T.take (a - off) txt <> T.unwords urls <> go xs b (T.drop (b - off) txt)
 
 -- | Fetches the HTML title of a URL and also returns the canonical URL (after performing any redirections).
-fetchUrlTitle :: (MonadIO m, MonadState Config m) => Text -> m (Maybe Text, Text)
-fetchUrlTitle url = liftIO do
+fetchUrlTitle :: Text -> IO (Maybe Text, Text)
+fetchUrlTitle url = do
   request <- addRequestHeader "Accept-Language" "en,*"
            . addRequestHeader "User-Agent" "bothendieck (https://github.com/ncfavier/bothendieck)"
            . noCookies
