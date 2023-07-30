@@ -100,9 +100,10 @@ urlTitleInit = do
   pure \ (src, _action, msg) -> case src of
     Channel _channel _nick -> True <$ do
       let urls = take maxUrls . map cleanUpURL $ getAllTextMatches (msg =~ urlRegex)
-      (errs, titles) <- liftIO $ partitionEithers <$> withPool (length urls) \ pool -> parallelE pool (map fetchUrlTitle urls)
-      sequence_ [replyTo src $ limitOutput $ ircBold <> "> " <> ircReset <> title | (Just title, _) <- titles]
-      liftIO $ mapM_ print errs
+      unless (null urls) do
+        (errs, titles) <- liftIO $ partitionEithers <$> withPool (length urls) \ pool -> parallelE pool (map fetchUrlTitle urls)
+        sequence_ [replyTo src $ limitOutput $ ircBold <> "> " <> ircReset <> title | (Just title, _) <- titles]
+        liftIO $ mapM_ print errs
     _ -> pure False
 
 titleScraper :: Scraper Text Text
