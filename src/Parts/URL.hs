@@ -133,17 +133,18 @@ data TweetUser = TweetUser { name :: Text, screen_name :: Text }
   deriving (Generic, FromJSON)
 data TweetEntities = TweetEntities { urls :: [TweetEntity] }
   deriving (Generic, FromJSON)
-data TweetEntity = TweetEntity { expanded_url :: Text, media_url_https :: Maybe Text, indices :: (Int, Int) }
+data TweetEntity = TweetEntity { expanded_url :: Text, media_url_https :: Maybe Text, indices :: (Int, Int), ext_alt_text :: Maybe Text }
   deriving (Generic, FromJSON)
 
 -- | Expands shortened URLs and decodes HTML entities in the tweet's text.
 getTweetText :: Tweet -> Text
-getTweetText Tweet{text, entities, mediaDetails} = LT.toStrict $ toLazyText $ htmlEncodedText $ go spans 0 text
+getTweetText Tweet{..} = LT.toStrict $ toLazyText $ htmlEncodedText $ go spans 0 text
   where
-    spans = map (indices.head &&& map (liftA2 fromMaybe expanded_url media_url_https))
+    spans = map (indices.head &&& map entityUrl)
           $ groupBy ((==) `on` indices)
           $ sortOn indices
           $ urls entities ++ fromMaybe [] mediaDetails
+    entityUrl TweetEntity{..} = fromMaybe expanded_url media_url_https <> maybe "" (\ a -> " [" <> T.strip a <> "]") ext_alt_text
     go [] _ txt = txt
     go (((a, b), urls):xs) off txt = T.take (a - off) txt <> T.unwords urls <> go xs b (T.drop (b - off) txt)
 
