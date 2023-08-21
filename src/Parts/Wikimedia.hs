@@ -1,6 +1,5 @@
 module Parts.Wikimedia (wikimediaInit) where
 
-import Control.Monad.Extra
 import Control.Monad.IO.Class
 import Data.Map qualified as M
 import Data.Text qualified as T
@@ -10,6 +9,7 @@ import Network.HTTP.Simple
 import Network.IRC.Client
 import Text.HTML.Scalpel
 import Text.HTML.TagSoup
+import Text.HTML.TagSoup.Match
 import Text.HTML.TagSoup.Tree
 
 import Parts.URL
@@ -35,13 +35,14 @@ wikimediaInit = do
                     & setRequestQueryString [ "search" ?= T.encodeUtf8 (T.unwords args) ]
         response <- httpBS request
         let scraper = text $ "div" @: [hasClass "mw-parser-output"] // "p" @: [notP $ hasClass "mw-empty-elt"] `atDepth` 1
-            summary = scrape scraper . flattenTree . transformTree noStyle . tagTree . parseTags . T.decodeUtf8 $ getResponseBody response
-            noStyle (TagBranch "style" _ _) = []
-            noStyle x = [x]
+            summary = scrape scraper . flattenTree . transformTree f . tagTree . parseTags . T.decodeUtf8 $ getResponseBody response
+            f (TagBranch "style" _ _) = []
+            f (TagBranch _ attr _) | anyAttrLit ("encoding", "application/x-tex") attr
+                                  || "reference" `elem` classes attr = []
+            f x = [x]
+            classes attr = [c | ("class", cs) <- attr, c <- T.words cs]
             url = T.pack . show . getUri $ getOriginalRequest response
-        whenJust summary \ s -> do
-          replyTo src (limitOutput s)
-        replyTo src ("[" <> url <> "]")
+        replyTo src (maybe "" (limitOutput . T.unwords . T.words) summary <> "[" <> url <> "]")
   pure $ M.fromList
     [ ("wp", wikipediaSummaryCommand)
     , ("wprandom", wikipediaRandomCommand)

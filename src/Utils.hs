@@ -77,8 +77,11 @@ truncateWithEllipsis n t | T.length t > n = T.take (n - 1) t <> "…"
 maxOutputLength :: Int
 maxOutputLength = 450
 
+maxOutputLines :: Int
+maxOutputLines = 5
+
 limitOutput :: Text -> Text
-limitOutput = truncateWithEllipsis maxOutputLength
+limitOutput = T.unlines . take maxOutputLines . T.lines . truncateWithEllipsis maxOutputLength
 
 (?=) :: a -> b -> (a, Maybe b)
 k ?= v = (k, Just v)

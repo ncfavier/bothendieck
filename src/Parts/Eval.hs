@@ -30,9 +30,6 @@ data Desc = Desc
   , available :: [Text]
   } deriving (Generic, FromJSON)
 
-maxOutputLines :: Int
-maxOutputLines = 5
-
 evalInit :: IO (MessageHandler s Text, Commands)
 evalInit = do
   (evaluators, sort -> names) <- lookupEnv "EVALUATORS" >>= \case
@@ -70,7 +67,6 @@ evalInit = do
             more <- liftIO $ try (httpBS request) >>= \case
               Left (e :: HttpException) -> "there's more but pasting failed" <$ print e
               Right (response) -> pure $ truncateWithEllipsis 100 (T.strip . T.decodeUtf8 $ getResponseBody response)
-            replyTo src $ T.unlines (take maxOutputLines . T.lines $ limitOutput output)
-                       <> ircBold <> "[" <> more <> "]" <> ircReset
+            replyTo src $ limitOutput output <> ircBold <> "[" <> more <> "]" <> ircReset
       handler _ = pure False
   pure (handler, M.singleton "eval" evalCommand)
