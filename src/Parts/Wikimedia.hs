@@ -17,7 +17,7 @@ import Utils
 
 wikimediaInit :: IO Commands
 wikimediaInit = do
-  let randomPageCommand project baseUrl src args = do
+  let randomPageCommand baseUrl src args = do
         let (page, anchor) = case args of
               [] -> ("Special:Random", "")
               "-l":(T.toTitle . T.unwords -> lang) -> -- convenience for Wiktionary
@@ -25,11 +25,11 @@ wikimediaInit = do
               _ -> ("Special:RandomInCategory/" <> T.unwords args, "")
         (mtitle, url) <- liftIO $ fetchUrlTitle (baseUrl <> "/wiki/" <> page)
         case mtitle of
-          Just (T.stripSuffix (" - " <> project) -> Just title) -> do
+          Just (T.breakOn " - " -> (title, _)) -> do
             replyTo src (ircBold <> title <> ircReset <> " " <> "[" <> url <> anchor <> "]")
           _ -> pure ()
-      wikipediaRandomCommand = randomPageCommand "Wikipedia" "https://en.wikipedia.org"
-      wiktionaryRandomCommand = randomPageCommand "Wiktionary" "https://en.wiktionary.org"
+      wikipediaRandomCommand = randomPageCommand "https://en.wikipedia.org"
+      wiktionaryRandomCommand = randomPageCommand "https://en.wiktionary.org"
       wikipediaSummaryCommand src args = do
         let request = parseRequestThrow_ "https://en.wikipedia.org/wiki"
                     & setRequestQueryString [ "search" ?= T.encodeUtf8 (T.unwords args) ]
