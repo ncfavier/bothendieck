@@ -47,7 +47,7 @@ executable bothendieck
     Parts.Wikimedia
     Utils
   build-depends:
-    aeson ^>= 2.0,
+    aeson >= 2.0,
     base >= 4.15.1.0 && < 5,
     bytestring >= 0.10 && < 1,
     bytestring-encoding ^>= 0.1,
@@ -79,7 +79,7 @@ executable bothendieck
     regex-tdfa ^>= 1.3,
     scalpel ^>= 0.6,
     tagsoup ^>= 0.14,
-    text ^>= 1.2,
+    text >= 1.2,
     tomland ^>= 1.3,
     transformers ^>= 0.5,
-    vector ^>= 0.12,
+    vector >= 0.12,
