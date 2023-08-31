@@ -25,6 +25,7 @@ data Config = Config
   , realName :: Text
   , channels :: [Text]
   , commandPrefix :: Text
+  , urlAlternativeHosts :: Map Text Text
   , merriamWebsterKey :: Maybe Text
   , wolframAlphaKey :: Maybe Text
   } deriving (Generic)

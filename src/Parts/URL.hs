@@ -1,27 +1,23 @@
 module Parts.URL (urlTitleInit, fetchUrlTitle) where
 
 import Control.Applicative
-import Control.Arrow
 import Control.Concurrent.ParallelIO.Local
 import Control.Monad
 import Control.Monad.IO.Class
-import Data.Aeson
+import Control.Monad.State
 import Data.ByteString.Char8 qualified as B8
 import Data.ByteString.Encoding qualified as BE
 import Data.ByteString.Lazy qualified as BL
 import Data.CaseInsensitive (original)
 import Data.Either
-import Data.List
+import Data.Map (Map)
+import Data.Map qualified as Map
 import Data.Maybe
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as T
 import Data.Text.Encoding.Error qualified as T
-import Data.Text.Lazy qualified as LT
-import Data.Text.Lazy.Builder
 import Data.Text.IDN.IDNA
-import GHC.Generics
-import HTMLEntities.Decoder
 import Network.Connection (TLSSettings (..))
 import Network.HTTP.Client as H
 import Network.HTTP.Client.Restricted
@@ -65,20 +61,59 @@ fixHostEncoding request = setRequestHost host' request where
 noCookies :: Request -> Request
 noCookies request = request { cookieJar = Nothing }
 
--- | Rewrite requests to Twitter to use a JSON API to bypass JavaScript and login walls.
-rewriteTwitter :: Request -> Maybe Request
-rewriteTwitter request
+{-
+data Tweet = Tweet { text :: Text, user :: TweetUser, entities :: TweetEntities, mediaDetails :: Maybe [TweetEntity] }
+  deriving (Generic, FromJSON)
+data TweetUser = TweetUser { name :: Text, screen_name :: Text }
+  deriving (Generic, FromJSON)
+data TweetEntities = TweetEntities { urls :: [TweetEntity] }
+  deriving (Generic, FromJSON)
+data TweetEntity = TweetEntity { expanded_url :: Text, media_url_https :: Maybe Text, indices :: (Int, Int), ext_alt_text :: Maybe Text }
+  deriving (Generic, FromJSON)
+
+-- | Expands shortened URLs and decodes HTML entities in the tweet's text.
+getTweetText :: Tweet -> Text
+getTweetText Tweet{..} = LT.toStrict $ toLazyText $ htmlEncodedText $ go spans 0 text
+  where
+    spans = map (indices.head &&& map entityUrl)
+          $ groupBy ((==) `on` indices)
+          $ sortOn indices
+          $ urls entities ++ fromMaybe [] mediaDetails
+    entityUrl TweetEntity{..} = fromMaybe expanded_url media_url_https <> maybe "" (\ a -> " [" <> T.strip a <> "]") ext_alt_text
+    go [] _ txt = txt
+    go (((a, b), urls):xs) off txt = T.take (a - off) txt <> T.unwords urls <> go xs b (T.drop (b - off) txt)
+-}
+
+-- | Treat some requests specially.
+special :: Request -> Maybe (IO (Maybe Text, Text))
+{-
+special request
   | host request `elem` ["twitter.com", "m.twitter.com"]
   , _:"status":statusId:_ <- pathSegments (getUri request)
-  = Just
-  . setRequestHost (host jsonRequest)
-  . setRequestPort (H.port jsonRequest)
-  . setRequestSecure (secure jsonRequest)
-  . setRequestPath (H.path jsonRequest)
-  . setRequestQueryString [ "id" ?= B8.pack statusId ]
+  = Just do
+    let request' = setRequestHost (host jsonRequest)
+                 . setRequestPort (H.port jsonRequest)
+                 . setRequestSecure (secure jsonRequest)
+                 . setRequestPath (H.path jsonRequest)
+                 . setRequestQueryString [ "id" ?= B8.pack statusId ]
+                 $ request
+    response <- httpJSON request'
+    let t@Tweet { user = TweetUser name screen_name } = getResponseBody response
+        title = ircBold <> name <> " (@" <> screen_name <> ")" <> ircReset <> ": " <> T.unwords (T.words (getTweetText t))
+    pure (Just title, getOriginalUri response)
+  where jsonRequest = parseRequestThrow_ "https://cdn.syndication.twimg.com/tweet-result" -- does not work any longer
+-}
+special _ = Nothing
+
+rewriteHost :: Map Text Text -> Request -> Request
+rewriteHost alt request
+  | Just a <- alt Map.!? T.decodeLatin1 (host request)
+  , let altRequest = parseRequest_ (T.unpack a)
+  = setRequestHost (host altRequest)
+  . setRequestPort (H.port altRequest)
+  . setRequestSecure (secure altRequest)
   $ request
-  | otherwise = Nothing
-  where jsonRequest = parseRequestThrow_ "https://cdn.syndication.twimg.com/tweet-result"
+  | otherwise = request
 
 -- | Forbids connections to reserved (e.g. local) IP addresses.
 restrictIPs :: AddrInfo -> Maybe ConnectionRestricted
@@ -101,7 +136,8 @@ urlTitleInit = do
     Channel _channel _nick -> True <$ do
       let urls = take maxUrls . map cleanUpURL $ getAllTextMatches (msg =~ urlRegex)
       unless (null urls) do
-        (errs, titles) <- liftIO $ partitionEithers <$> withPool (length urls) \ pool -> parallelE pool (map fetchUrlTitle urls)
+        s <- getIRCState
+        (errs, titles) <- liftIO $ partitionEithers <$> withPool (length urls) \ pool -> parallelE pool [runIRCAction (fetchUrlTitle u) s | u <- urls]
         sequence_ [replyTo src $ limitOutput $ ircBold <> "> " <> ircReset <> title | (Just title, _) <- titles]
         liftIO $ mapM_ print errs
     _ -> pure False
@@ -127,55 +163,29 @@ titleScraper = asum
 getOriginalUri :: Response a -> Text
 getOriginalUri = T.pack . show . getUri . getOriginalRequest
 
-data Tweet = Tweet { text :: Text, user :: TweetUser, entities :: TweetEntities, mediaDetails :: Maybe [TweetEntity] }
-  deriving (Generic, FromJSON)
-data TweetUser = TweetUser { name :: Text, screen_name :: Text }
-  deriving (Generic, FromJSON)
-data TweetEntities = TweetEntities { urls :: [TweetEntity] }
-  deriving (Generic, FromJSON)
-data TweetEntity = TweetEntity { expanded_url :: Text, media_url_https :: Maybe Text, indices :: (Int, Int), ext_alt_text :: Maybe Text }
-  deriving (Generic, FromJSON)
-
--- | Expands shortened URLs and decodes HTML entities in the tweet's text.
-getTweetText :: Tweet -> Text
-getTweetText Tweet{..} = LT.toStrict $ toLazyText $ htmlEncodedText $ go spans 0 text
-  where
-    spans = map (indices.head &&& map entityUrl)
-          $ groupBy ((==) `on` indices)
-          $ sortOn indices
-          $ urls entities ++ fromMaybe [] mediaDetails
-    entityUrl TweetEntity{..} = fromMaybe expanded_url media_url_https <> maybe "" (\ a -> " [" <> T.strip a <> "]") ext_alt_text
-    go [] _ txt = txt
-    go (((a, b), urls):xs) off txt = T.take (a - off) txt <> T.unwords urls <> go xs b (T.drop (b - off) txt)
-
 -- | Fetches the HTML title of a URL and also returns the canonical URL (after performing any redirections).
-fetchUrlTitle :: Text -> IO (Maybe Text, Text)
-fetchUrlTitle url = do
+fetchUrlTitle :: (MonadIO m, MonadState Config m) => Text -> m (Maybe Text, Text)
+fetchUrlTitle url = get >>= \ config -> liftIO do
   request <- addRequestHeader "Accept-Language" "en,*"
            . addRequestHeader "User-Agent" "bothendieck (https://github.com/ncfavier/bothendieck)"
            . noCookies
+           . rewriteHost (urlAlternativeHosts config)
            . fixHostEncoding
          <$> parseRequestThrow (T.unpack url)
-  case rewriteTwitter request of
-    Just request' -> do
-      response <- httpJSON request'
-      let t@Tweet { user = TweetUser name screen_name } = getResponseBody response
-          title = ircBold <> name <> " (@" <> screen_name <> ")" <> ircReset <> ": " <> T.unwords (T.words (getTweetText t))
-      pure (Just title, getOriginalUri response)
-    Nothing -> do
-      manager <- getGlobalManager
-      withResponse request manager \ response -> (,getOriginalUri response) <$> do
-        case mapMaybe (parseAccept @MediaType) $ getResponseHeader "Content-Type" response of
-          ct:_ | ct `matches` "text/html"
-              || ct `matches` "application/xhtml+xml" ->  do
-            body <- brReadSome (getResponseBody response) maxResponseSize
-            encoding <- traverse BE.mkTextEncoding $ asum
-              [ B8.unpack . original <$> ct /. "charset"
-              , detectBom body
-              , detectMetaCharset . BL.take 1024 $ body
-              -- skip detectEncodingName as it tends to incorrectly guess ASCII
-              ]
-            let decode = maybe (T.decodeUtf8With T.lenientDecode) BE.decode encoding
-                title = scrapeStringLike (decode $ BL.toStrict body) titleScraper
-            pure $ T.unwords . T.words <$> title
-          _ -> pure Nothing
+  flip fromMaybe (special request) do
+    manager <- getGlobalManager
+    withResponse request manager \ response -> (,getOriginalUri response) <$> do
+      case mapMaybe (parseAccept @MediaType) $ getResponseHeader "Content-Type" response of
+        ct:_ | ct `matches` "text/html"
+            || ct `matches` "application/xhtml+xml" ->  do
+          body <- brReadSome (getResponseBody response) maxResponseSize
+          encoding <- traverse BE.mkTextEncoding $ asum
+            [ B8.unpack . original <$> ct /. "charset"
+            , detectBom body
+            , detectMetaCharset . BL.take 1024 $ body
+            -- skip detectEncodingName as it tends to incorrectly guess ASCII
+            ]
+          let decode = maybe (T.decodeUtf8With T.lenientDecode) BE.decode encoding
+              title = scrapeStringLike (decode $ BL.toStrict body) titleScraper
+          pure $ T.unwords . T.words <$> title
+        _ -> pure Nothing
