@@ -15,6 +15,8 @@ import Network.IRC.Client hiding (timeout)
 import Network.IRC.Conduit (Target)
 import System.IO
 import System.Timeout
+import Toml.FromValue hiding (matchMessage)
+import Toml.FromValue.Generic
 
 data Config = Config
   { server :: Text
@@ -29,6 +31,9 @@ data Config = Config
   , merriamWebsterKey :: Maybe Text
   , wolframAlphaKey :: Maybe Text
   } deriving (Generic)
+
+instance FromValue Config where
+  fromValue = parseTableFromValue genericParseTable
 
 -- | Message handlers are run in sequence on each received message or action until
 -- one of them returns True.

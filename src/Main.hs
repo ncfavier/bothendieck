@@ -5,11 +5,13 @@ import Control.Monad.Extra
 import Data.Foldable
 import Data.Map qualified as M
 import Data.Text qualified as T
-import Data.Text.IO qualified as T
 import Data.Text.Encoding
 import Network.IRC.Client as IRC hiding (server, port, nick, password)
-import Options.Applicative hiding (action)
-import Toml qualified
+import Options.Applicative hiding (action, Success, Failure)
+import Toml
+import Toml.FromValue
+import Toml.FromValue.Matcher
+import Toml.Pretty
 
 import Parts.Compliment
 import Parts.Eval
@@ -36,8 +38,10 @@ parseOptions = do
 main :: IO ()
 main = do
   options <- execParser (info (parseOptions <**> helper) mempty)
-  toml <- T.unlines <$> traverse T.readFile ([configFile options] <> extraConfigFiles options)
-  let config = either (error . T.unpack . Toml.prettyTomlDecodeErrors) id $ Toml.decodeExact Toml.genericCodec toml
+  table <- mconcat <$> traverse (either fail pure . parse <=< readFile) ([configFile options] <> extraConfigFiles options)
+  config <- case runMatcher (fromValue (Table table)) of
+    Success _ x -> pure x
+    Failure e -> fail (foldMap prettyMatchMessage e)
   complimentCommands <- complimentInit
   (evalHandler, evalCommands) <- evalInit
   merriamWebsterCommands <- merriamWebsterInit (merriamWebsterKey config)
