@@ -4,6 +4,8 @@ import Control.Monad.IO.Class
 import Data.Map qualified as M
 import Data.Text (Text)
 import Data.Text qualified as T
+import Data.Text.Encoding qualified as T
+import Network.HTTP.Simple
 import Network.IRC.Client
 import Text.HTML.Scalpel
 import Text.HTML.TagSoup
@@ -25,11 +27,21 @@ getPages ts = ts >>= ul where
 nLabInit :: IO Commands
 nLabInit = do
   let baseUrl = "https://ncatlab.org"
+      nlabCommand src args = do
+        let query = T.unwords args
+            request = parseRequestThrow_ (T.unpack $ baseUrl <> "/nlab/search")
+                    & setRequestQueryString [ "query" ?= T.encodeUtf8 query ]
+        response <- httpBS request
+        let tags = parseTags $ T.decodeUtf8 $ getResponseBody response
+            pages = getPages $ tagTree tags
+            (name, url) = head $ [(n, u) | (n, u) <- pages, n == query] <> pages
+        replyTo src $ ircBold <> name <> ircReset <> " [" <> baseUrl <> url <> "]"
       nlabRandomCommand src args = do
         tags <- liftIO $ fetchTags $ T.unpack $ baseUrl <> "/nlab/list/" <> T.unwords args
         let v = V.fromList (getPages (tagTree tags))
         (name, url) <- pickRandom v
         replyTo src $ ircBold <> name <> ircReset <> " [" <> baseUrl <> url <> "]"
   pure $ M.fromList
-    [ ("nlabrandom", nlabRandomCommand)
+    [ ("nlab", nlabCommand)
+    , ("nlabrandom", nlabRandomCommand)
     ]
