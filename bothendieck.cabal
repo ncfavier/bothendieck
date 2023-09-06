@@ -33,6 +33,7 @@ executable bothendieck
     Parts.Compliment
     Parts.Eval
     Parts.MerriamWebster
+    Parts.NLab
     Parts.Translate
     Parts.URL
     Parts.WolframAlpha

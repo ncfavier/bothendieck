@@ -29,6 +29,7 @@ wikimediaInit = do
           _ -> pure ()
       wikipediaRandomCommand = randomPageCommand "https://en.wikipedia.org"
       wiktionaryRandomCommand = randomPageCommand "https://en.wiktionary.org"
+      wikipediaSummaryCommand src [] = wikipediaRandomCommand src []
       wikipediaSummaryCommand src args = do
         let request = parseRequestThrow_ "https://en.wikipedia.org/wiki"
                     & setRequestQueryString [ "search" ?= T.encodeUtf8 (T.unwords args) ]

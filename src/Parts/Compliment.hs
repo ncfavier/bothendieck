@@ -6,7 +6,6 @@ import Data.Text qualified as T
 import Data.Vector (Vector)
 import Data.Vector qualified as V
 import Network.IRC.Client hiding (nick)
-import System.Random
 
 import Utils
 
@@ -14,7 +13,7 @@ complimentCommand :: Command
 complimentCommand src@(Channel _channel nick) args = do
   let target | n:_ <- args, T.length n < 32 = n
              | otherwise = nick
-  compliment <- (compliments V.!) <$> randomRIO (0, V.length compliments - 1)
+  compliment <- pickRandom compliments
   replyTo src (target <> ": " <> compliment)
 complimentCommand _ _ = pure ()
 

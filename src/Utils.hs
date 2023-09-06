@@ -10,10 +10,13 @@ import Data.Function
 import Data.Map (Map)
 import Data.Text (Text)
 import Data.Text qualified as T
+import Data.Vector (Vector)
+import Data.Vector qualified as V
 import GHC.Generics
 import Network.IRC.Client hiding (timeout)
 import Network.IRC.Conduit (Target)
 import System.IO
+import System.Random
 import System.Timeout
 import Toml.FromValue hiding (matchMessage)
 import Toml.FromValue.Generic
@@ -91,3 +94,6 @@ limitOutput = T.unlines . take maxOutputLines . T.lines . truncateWithEllipsis m
 
 (?=) :: a -> b -> (a, Maybe b)
 k ?= v = (k, Just v)
+
+pickRandom :: MonadIO m => Vector a -> m a
+pickRandom l = (l V.!) <$> randomRIO (0, V.length l - 1)
