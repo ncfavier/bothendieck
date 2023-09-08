@@ -8,6 +8,9 @@ A simple IRC bot based on the [`irc-client`](https://hackage.haskell.org/package
   - `.wp ARTICLE` prints a summary of the given article on Wikipedia.
   - `.wprandom [CATEGORY]` prints a link to a random Wikipedia article.
   - `.wtrandom [CATEGORY|-l LANGUAGE]` prints a link to a random Wiktionary entry.
+- [nLab](https://github.com/ncfavier/bothendieck/blob/main/src/Parts/NLab.hs).
+  - `.nlab SEARCH` searches for a page on the nLab and prints a link to the first result.
+  - `.nlabrandom [CATEGORY]` prints a random page from the nLab.
 - [Merriam-Webster](https://github.com/ncfavier/bothendieck/blob/main/src/Parts/MerriamWebster.hs) dictionary:
   - `.define [-e ENTRY] WORD`
   - `.etymology [-e ENTRY] WORD`
