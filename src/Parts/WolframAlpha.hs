@@ -20,9 +20,12 @@ wolframAlphaInit (Just key) = do
                                             ]
         response <- httpBS request
         replyTo src $ limitOutput $ T.decodeUtf8 $ getResponseBody response
+      wolframAlphaSubcommand prefix src args = wolframAlphaCommand src (prefix:args)
   pure $ M.fromList
     [ ("wolframalpha", wolframAlphaCommand)
     , ("wolfram", wolframAlphaCommand)
     , ("wa", wolframAlphaCommand)
+    , ("time", wolframAlphaSubcommand "time")
+    , ("weather", wolframAlphaSubcommand "weather")
     ]
 wolframAlphaInit _ = pure mempty
