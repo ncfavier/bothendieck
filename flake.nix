@@ -34,7 +34,10 @@
     bothendieck = pkgs.callPackage ({ lib, runCommand, haskellPackages, makeWrapper, qeval ? null, translate-shell }:
       runCommand "bothendieck" {
         nativeBuildInputs = [ makeWrapper ];
-        inherit (haskellPackages.bothendieck) passthru meta;
+        inherit (haskellPackages.bothendieck) meta;
+        passthru = haskellPackages.bothendieck.passthru // {
+          inherit qeval;
+        };
       } ''
         mkdir -p "$out/bin"
         makeWrapper ${haskellPackages.bothendieck}/bin/bothendieck "$out/bin/bothendieck" \
