@@ -66,7 +66,7 @@ evalInit = do
               [partFileRequestBody "f:1" "-" $ RequestBodyBS $ T.encodeUtf8 output]
             more <- liftIO $ try (httpBS request) >>= \case
               Left (e :: HttpException) -> "there's more but pasting failed" <$ print e
-              Right (response) -> pure $ truncateWithEllipsis 100 (T.strip . T.decodeUtf8 $ getResponseBody response)
+              Right response -> pure $ T.strip . limitOutputAt 100 1 . T.decodeUtf8 $ getResponseBody response
             replyTo src $ limitOutput output <> ircBold <> "[" <> more <> "]" <> ircReset
       handler _ = pure False
   pure (handler, M.singleton "eval" evalCommand)
