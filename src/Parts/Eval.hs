@@ -30,8 +30,8 @@ data Desc = Desc
   , available :: [Text]
   } deriving (Generic, FromJSON)
 
-evalInit :: IO (MessageHandler s Text, Commands)
-evalInit = do
+evalInit :: Config -> IO (MessageHandler s Text, Commands)
+evalInit config = do
   (evaluators, sort -> names) <- lookupEnv "EVALUATORS" >>= \case
     Nothing -> mempty <$ T.hPutStrLn stderr "warning: EVALUATORS is not set"
     Just evaluatorsPath -> do
@@ -62,8 +62,8 @@ evalInit = do
           if T.compareLength output maxOutputLength <= EQ && length (filter (not . T.null) $ T.lines output) <= maxOutputLines then
             replyTo src output
           else do
-            request <- parseRequestThrow "https://0x0.st" >>= formDataBody
-              [partFileRequestBody "file" "-" $ RequestBodyBS $ T.encodeUtf8 output]
+            request <- parseRequestThrow (pasteUrl config) >>= formDataBody
+              [partFileRequestBody (pasteField config) "-" $ RequestBodyBS $ T.encodeUtf8 output]
             more <- liftIO $ try (httpBS request) >>= \case
               Left (e :: HttpException) -> "there's more but pasting failed" <$ print e
               Right response -> pure $ T.strip . limitOutputAt 100 1 . T.decodeUtf8 $ getResponseBody response

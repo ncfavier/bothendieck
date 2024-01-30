@@ -44,7 +44,7 @@ main = do
     Success _ x -> pure x
     Failure e -> fail (foldMap prettyMatchMessage e)
   complimentCommands <- complimentInit
-  (evalHandler, evalCommands) <- evalInit
+  (evalHandler, evalCommands) <- evalInit config
   merriamWebsterCommands <- merriamWebsterInit (merriamWebsterKey config)
   nLabCommands <- nLabInit
   translateCommands <- translateInit

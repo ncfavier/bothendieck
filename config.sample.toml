@@ -6,3 +6,5 @@ password = "hunter2"
 realName = "bothendieck"
 channels = []
 commandPrefix = "."
+pasteUrl = "https://0x0.st"
+pasteField = "file"

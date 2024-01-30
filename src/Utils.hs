@@ -30,6 +30,8 @@ data Config = Config
   , realName :: Text
   , channels :: [Text]
   , commandPrefix :: Text
+  , pasteUrl :: String
+  , pasteField :: Text
   , urlAlternativeHosts :: Map Text Text
   , merriamWebsterKey :: Maybe Text
   , wolframAlphaKey :: Maybe Text
