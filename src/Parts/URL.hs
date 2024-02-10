@@ -177,7 +177,8 @@ fetchUrlTitle url = get >>= \ config -> liftIO do
     withResponse request manager \ response -> (,getOriginalUri response) <$> do
       case mapMaybe (parseAccept @MediaType) $ getResponseHeader "Content-Type" response of
         ct:_ | ct `matches` "text/html"
-            || ct `matches` "application/xhtml+xml" ->  do
+            || ct `matches` "application/xhtml+xml"
+            || ct `matches` "application/xml" -> do
           body <- brReadSome (getResponseBody response) maxResponseSize
           encoding <- traverse BE.mkTextEncoding $ asum
             [ B8.unpack . original <$> ct /. "charset"
