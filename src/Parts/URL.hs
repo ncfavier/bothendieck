@@ -10,6 +10,7 @@ import Data.ByteString.Encoding qualified as BE
 import Data.ByteString.Lazy qualified as BL
 import Data.CaseInsensitive (original)
 import Data.Either
+import Data.Functor
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
@@ -34,18 +35,21 @@ import Text.Regex.TDFA hiding (empty)
 
 import Utils
 
-maxUrls :: Int
-maxUrls = 3
+data Link = URL Text | Wikilink Text deriving (Show)
+
+maxLinks :: Int
+maxLinks = 3
 
 maxResponseSize :: Int
 maxResponseSize = 10 * 1024 * 1024 * 1024
 
-urlRegex :: Text
-urlRegex = "https?://[^[:space:]]+"
+linkRegex :: Text
+linkRegex = "https?://[^[:space:]]+|\\[\\[[^][]+\\]\\]"
 
 -- TODO do this properly...
-cleanUpURL :: Text -> Text
-cleanUpURL url = T.dropWhileEnd (`T.elem` (",.:;!?\">" <> if '(' `T.elem` url then "" else ")")) url
+cleanUpURL :: Text -> Link
+cleanUpURL (T.stripPrefix "[[" -> Just (T.stripSuffix "]]" -> Just link)) = Wikilink link
+cleanUpURL url = URL $ T.dropWhileEnd (`T.elem` (",.:;!?\">" <> if '(' `T.elem` url then "" else ")")) url
 
 -- | Fixes the encoding of a Unicode hostname from percent-encoding (as a result of `escapeURIString`) to IDNA.
 fixHostEncoding :: Request -> Request
@@ -134,10 +138,10 @@ urlTitleInit = do
   setGlobalManager =<< newManager managerSettings
   pure \ (src, _action, msg) -> case src of
     Channel _channel _nick -> True <$ do
-      let urls = take maxUrls . map cleanUpURL $ getAllTextMatches (msg =~ urlRegex)
-      unless (null urls) do
+      let links = take maxLinks . map cleanUpURL $ getAllTextMatches (msg =~ linkRegex)
+      unless (null links) do
         s <- getIRCState
-        (errs, titles) <- liftIO $ partitionEithers <$> withPool (length urls) \ pool -> parallelE pool [runIRCAction (fetchUrlTitle u) s | u <- urls]
+        (errs, titles) <- liftIO $ partitionEithers <$> withPool (length links) \ pool -> parallelE pool [runIRCAction (processLink l) s | l <- links]
         sequence_ [replyTo src $ limitOutput $ ircBold <> "> " <> ircReset <> title | (Just title, _) <- titles]
         liftIO $ mapM_ print errs
     _ -> pure False
@@ -162,6 +166,13 @@ titleScraper = asum
 
 getOriginalUri :: Response a -> Text
 getOriginalUri = T.pack . show . getUri . getOriginalRequest
+
+processLink :: (MonadIO m, MonadState Config m) => Link -> m (Maybe Text, Text)
+processLink (URL url) = fetchUrlTitle url
+processLink (Wikilink link) = do
+  (t, url') <- fetchUrlTitle url
+  pure (t <&> \t -> fromMaybe t (T.stripSuffix " - Wikipedia" t) <> " [" <> url' <> "]", url')
+  where url = "https://en.wikipedia.org/wiki/" <> link
 
 -- | Fetches the HTML title of a URL and also returns the canonical URL (after performing any redirections).
 fetchUrlTitle :: (MonadIO m, MonadState Config m) => Text -> m (Maybe Text, Text)
