@@ -18,8 +18,8 @@ import Network.IRC.Conduit (Target)
 import System.IO
 import System.Random
 import System.Timeout
-import Toml.FromValue hiding (matchMessage)
-import Toml.FromValue.Generic
+import Toml.FromValue (FromValue)
+import Toml.Generic
 
 data Config = Config
   { server :: Text
@@ -35,10 +35,9 @@ data Config = Config
   , urlAlternativeHosts :: Map Text Text
   , merriamWebsterKey :: Maybe Text
   , wolframAlphaKey :: Maybe Text
-  } deriving (Generic)
-
-instance FromValue Config where
-  fromValue = parseTableFromValue genericParseTable
+  }
+  deriving (Generic)
+  deriving FromValue via GenericTomlTable Config
 
 -- | Message handlers are run in sequence on each received message or action until
 -- one of them returns True.
