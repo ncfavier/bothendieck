@@ -9,6 +9,7 @@ import Data.ByteString.Char8 qualified as B8
 import Data.ByteString.Encoding qualified as BE
 import Data.ByteString.Lazy qualified as BL
 import Data.CaseInsensitive (original)
+import Data.CURL.CookieJar
 import Data.Either
 import Data.Functor
 import Data.Map (Map)
@@ -60,10 +61,8 @@ fixHostEncoding request = setRequestHost host' request where
           . B8.unpack . host
           $ request
 
--- | Don't propagate cookies sent by the server across requests.
--- This works around Google's cookie consent pages.
-noCookies :: Request -> Request
-noCookies request = request { cookieJar = Nothing }
+setCookies :: Maybe CookieJar -> Request -> Request
+setCookies c request = request { cookieJar = c }
 
 {-
 data Tweet = Tweet { text :: Text, user :: TweetUser, entities :: TweetEntities, mediaDetails :: Maybe [TweetEntity] }
@@ -177,9 +176,11 @@ processLink (Wikilink link) = do
 -- | Fetches the HTML title of a URL and also returns the canonical URL (after performing any redirections).
 fetchUrlTitle :: (MonadIO m, MonadState Config m) => Text -> m (Maybe Text, Text)
 fetchUrlTitle url = get >>= \ config -> liftIO do
+  cookieJar <- traverse (readCookieJarFile . T.unpack) (urlCookieJar config)
   request <- addRequestHeader "Accept-Language" "en,*"
            . addRequestHeader "User-Agent" "bothendieck (https://github.com/ncfavier/bothendieck)"
-           . noCookies
+          --  . setCookies Nothing -- Don't propagate cookies sent by the server across requests. This works around Google's cookie consent pages.
+           . setCookies cookieJar
            . rewriteHost (urlAlternativeHosts config)
            . fixHostEncoding
          <$> parseRequestThrow (T.unpack url)

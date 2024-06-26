@@ -32,6 +32,7 @@ data Config = Config
   , commandPrefix :: Text
   , pasteUrl :: String
   , pasteField :: Text
+  , urlCookieJar :: Maybe Text
   , urlAlternativeHosts :: Map Text Text
   , merriamWebsterKey :: Maybe Text
   , wolframAlphaKey :: Maybe Text
