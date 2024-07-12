@@ -5,6 +5,7 @@ import Control.Concurrent.ParallelIO.Local
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.State
+import Data.ByteString qualified as B
 import Data.ByteString.Char8 qualified as B8
 import Data.ByteString.Encoding qualified as BE
 import Data.ByteString.Lazy qualified as BL
@@ -29,7 +30,7 @@ import Network.HTTP.Simple hiding (httpLbs, withResponse)
 import Network.IP.Addr
 import Network.IRC.Client hiding (get)
 import Network.Socket
-import Network.URI
+import Network.URI hiding (path)
 import Text.Html.Encoding.Detection
 import Text.HTML.Scalpel hiding (Config, matches)
 import Text.Regex.TDFA hiding (empty)
@@ -112,9 +113,11 @@ rewriteHost :: Map Text Text -> Request -> Request
 rewriteHost alt request
   | Just a <- alt Map.!? T.decodeLatin1 (host request)
   , let altRequest = parseRequest_ (T.unpack a)
+  , let p = path altRequest
   = setRequestHost (host altRequest)
   . setRequestPort (H.port altRequest)
   . setRequestSecure (secure altRequest)
+  . setRequestPath (fromMaybe p (B.stripSuffix "/" p) <> path request)
   $ request
   | otherwise = request
 
