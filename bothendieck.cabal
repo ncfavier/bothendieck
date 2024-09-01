@@ -32,10 +32,10 @@ executable bothendieck
   hs-source-dirs: src
   main-is: Main.hs
   other-modules:
-    Parts.Compliment
     Parts.Eval
     Parts.MerriamWebster
     Parts.NLab
+    Parts.Random
     Parts.Translate
     Parts.URL
     Parts.WolframAlpha
