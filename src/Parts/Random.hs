@@ -10,11 +10,11 @@ import Network.IRC.Client hiding (nick)
 import Utils
 
 randomQuoteCommand :: Vector Text -> Command
-randomQuoteCommand qs src@(Channel _channel nick) args = do
-  let target | n:_ <- args, T.length n < 32 = n
-             | otherwise = nick
+randomQuoteCommand qs src@(Channel _channel _nick) args = do
+  let target | n:_ <- args, T.length n < 32 = n <> ": "
+             | otherwise = ""
   q <- pickRandom qs
-  replyTo src (target <> ": " <> q)
+  replyTo src (target <> q)
 randomQuoteCommand _ _ _ = pure ()
 
 randomInit :: IO Commands
