@@ -50,7 +50,7 @@ linkRegex = "https?://[^[:space:]]+|\\[\\[[^][]+\\]\\]"
 
 -- TODO do this properly...
 cleanUpURL :: Text -> Link
-cleanUpURL (T.stripPrefix "[[" -> Just (T.stripSuffix "]]" -> Just link)) = Wikilink link
+cleanUpURL (T.stripPrefix "[[" -> Just (T.stripSuffix "]]" -> Just link)) = Wikilink (T.takeWhileEnd (/= '|') link)
 cleanUpURL url = URL $ T.dropWhileEnd (`T.elem` (",.:;!?\">" <> if '(' `T.elem` url then "" else ")")) url
 
 -- | Fixes the encoding of a Unicode hostname from percent-encoding (as a result of `escapeURIString`) to IDNA.
