@@ -31,6 +31,7 @@ import Network.IP.Addr
 import Network.IRC.Client hiding (get)
 import Network.Socket
 import Network.URI hiding (path)
+import System.Process
 import Text.Html.Encoding.Detection
 import Text.HTML.Scalpel hiding (Config, matches)
 import Text.Regex.TDFA hiding (empty)
@@ -65,48 +66,24 @@ fixHostEncoding request = setRequestHost host' request where
 setCookies :: Maybe CookieJar -> Request -> Request
 setCookies c request = request { cookieJar = c }
 
-{-
-data Tweet = Tweet { text :: Text, user :: TweetUser, entities :: TweetEntities, mediaDetails :: Maybe [TweetEntity] }
-  deriving (Generic, FromJSON)
-data TweetUser = TweetUser { name :: Text, screen_name :: Text }
-  deriving (Generic, FromJSON)
-data TweetEntities = TweetEntities { urls :: [TweetEntity] }
-  deriving (Generic, FromJSON)
-data TweetEntity = TweetEntity { expanded_url :: Text, media_url_https :: Maybe Text, indices :: (Int, Int), ext_alt_text :: Maybe Text }
-  deriving (Generic, FromJSON)
-
--- | Expands shortened URLs and decodes HTML entities in the tweet's text.
-getTweetText :: Tweet -> Text
-getTweetText Tweet{..} = LT.toStrict $ toLazyText $ htmlEncodedText $ go spans 0 text
-  where
-    spans = map (indices.head &&& map entityUrl)
-          $ groupBy ((==) `on` indices)
-          $ sortOn indices
-          $ urls entities ++ fromMaybe [] mediaDetails
-    entityUrl TweetEntity{..} = fromMaybe expanded_url media_url_https <> maybe "" (\ a -> " [" <> T.strip a <> "]") ext_alt_text
-    go [] _ txt = txt
-    go (((a, b), urls):xs) off txt = T.take (a - off) txt <> T.unwords urls <> go xs b (T.drop (b - off) txt)
--}
+-- | Should the title for this URL be fetched using yt-dlp?
+useYtDlp :: Request -> Bool
+useYtDlp request
+  | host request `elem` ["youtube.com", "www.youtube.com"]
+  , p:_ <- pathSegments (getUri request)
+  , p `elem` ["watch", "shorts"]
+  = True
+useYtDlp request
+  | host request `elem` ["youtu.be"]
+  = True
+useYtDlp _ = False
 
 -- | Treat some requests specially.
 special :: Request -> Maybe (IO (Maybe Text, Text))
-{-
-special request
-  | host request `elem` ["twitter.com", "m.twitter.com"]
-  , _:"status":statusId:_ <- pathSegments (getUri request)
-  = Just do
-    let request' = setRequestHost (host jsonRequest)
-                 . setRequestPort (H.port jsonRequest)
-                 . setRequestSecure (secure jsonRequest)
-                 . setRequestPath (H.path jsonRequest)
-                 . setRequestQueryString [ "id" ?= B8.pack statusId ]
-                 $ request
-    response <- httpJSON request'
-    let t@Tweet { user = TweetUser name screen_name } = getResponseBody response
-        title = ircBold <> name <> " (@" <> screen_name <> ")" <> ircReset <> ": " <> T.unwords (T.words (getTweetText t))
-    pure (Just title, getOriginalUri response)
-  where jsonRequest = parseRequestThrow_ "https://cdn.syndication.twimg.com/tweet-result" -- does not work any longer
--}
+special request | useYtDlp request = Just do
+  let uri = show (getUri request)
+  title <- readCreateProcess (proc "yt-dlp" ["--print", "%(title)s", "--no-cache-dir", "--", uri]) ""
+  pure (Just (T.pack title), T.pack uri)
 special _ = Nothing
 
 rewriteHost :: Map Text Text -> Request -> Request
