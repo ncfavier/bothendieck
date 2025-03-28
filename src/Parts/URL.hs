@@ -69,7 +69,7 @@ setCookies c request = request { cookieJar = c }
 -- | Should the title for this URL be fetched using yt-dlp?
 useYtDlp :: Request -> Bool
 useYtDlp request
-  | host request `elem` ["youtube.com", "www.youtube.com"]
+  | host request `elem` ["youtube.com", "www.youtube.com", "m.youtube.com"]
   , p:_ <- pathSegments (getUri request)
   , p `elem` ["watch", "shorts"]
   = True
