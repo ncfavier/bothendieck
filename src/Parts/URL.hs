@@ -67,22 +67,26 @@ setCookies :: Maybe CookieJar -> Request -> Request
 setCookies c request = request { cookieJar = c }
 
 -- | Should the title for this URL be fetched using yt-dlp?
-useYtDlp :: Request -> Bool
+useYtDlp :: Request -> Maybe String
 useYtDlp request
   | host request `elem` ["youtube.com", "www.youtube.com", "m.youtube.com"]
   , p:_ <- pathSegments (getUri request)
   , p `elem` ["watch", "shorts"]
-  = True
+  = Just "%(title)s"
 useYtDlp request
   | host request `elem` ["youtu.be"]
-  = True
-useYtDlp _ = False
+  = Just "%(title)s"
+useYtDlp request
+  | host request `elem` ["bsky.app"]
+  , _:_:"post":_ <- pathSegments (getUri request)
+  = Just "%(description)s"
+useYtDlp _ = Nothing
 
 -- | Treat some requests specially.
 special :: Request -> Maybe (IO (Maybe Text, Text))
-special request | useYtDlp request = Just do
+special request | Just format <- useYtDlp request = Just do
   let uri = show (getUri request)
-  title <- readCreateProcess (proc "yt-dlp" ["--print", "%(title)s", "--no-cache-dir", "--", uri]) ""
+  title <- readCreateProcess (proc "yt-dlp" ["--print", format, "--no-cache-dir", "--", uri]) ""
   pure (Just (T.pack title), T.pack uri)
 special _ = Nothing
 
