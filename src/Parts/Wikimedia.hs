@@ -27,11 +27,10 @@ wikimediaInit = do
           Just (T.breakOn " - " -> (title, _)) -> do
             replyTo src (ircBold <> title <> ircReset <> " " <> "[" <> url <> anchor <> "]")
           _ -> pure ()
-      wikipediaRandomCommand = randomPageCommand "https://en.wikipedia.org"
-      wiktionaryRandomCommand = randomPageCommand "https://en.wiktionary.org"
-      wikipediaSummaryCommand src [] = wikipediaRandomCommand src []
-      wikipediaSummaryCommand src args = do
-        let request = parseRequestThrow_ "https://en.wikipedia.org/wiki"
+
+      summaryCommand baseUrl src [] = randomPageCommand baseUrl src []
+      summaryCommand baseUrl src args = do
+        let request = parseRequestThrow_ (T.unpack baseUrl <> "/wiki")
                     & setRequestQueryString [ "search" ?= T.encodeUtf8 (T.unwords args) ]
         response <- httpBS request
         let scraper = text $ "div" @: [hasClass "mw-parser-output"] // "p" @: [notP $ hasClass "mw-empty-elt"] `atDepth` 1
@@ -43,9 +42,16 @@ wikimediaInit = do
             classes attr = [c | ("class", cs) <- attr, c <- T.words cs]
             url = T.pack . show . getUri $ getOriginalRequest response
         replyTo src (maybe "" (limitOutput . T.unwords . T.words) summary <> "[" <> url <> "]")
+
+      wikipediaRandomCommand = randomPageCommand "https://en.wikipedia.org"
+      wikipediaSummaryCommand = summaryCommand "https://en.wikipedia.org"
+      wiktionaryRandomCommand = randomPageCommand "https://en.wiktionary.org"
+      wiktionarySummaryCommand = summaryCommand "https://en.wiktionary.org"
   pure $ M.fromList
     [ ("wp", wikipediaSummaryCommand)
     , ("wprandom", wikipediaRandomCommand)
+    , ("wt", wiktionarySummaryCommand)
+    , ("wʃ", wiktionarySummaryCommand)
     , ("wtrandom", wiktionaryRandomCommand)
     , ("wʃrandom", wiktionaryRandomCommand)
     ]
