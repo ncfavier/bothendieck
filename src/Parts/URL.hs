@@ -82,7 +82,17 @@ useYtDlp _ = False
 special :: Request -> Maybe (IO (Maybe Text, Text))
 special request | useYtDlp request = Just do
   let uri = show (getUri request)
-  title <- readCreateProcess (proc "yt-dlp" ["--print", "%(title)s", "--no-cache-dir", "--", uri]) ""
+      ytDlpArgs =
+        [ "--ignore-no-formats"
+        , "--no-warnings"
+        , "--extractor-args"
+        , "youtube:player_client=web;player_skip=configs,js"
+        , "--print"
+        , "title"
+        , "--no-cache-dir"
+        , "--"
+        , uri]
+  title <- readCreateProcess (proc "yt-dlp" ytDlpArgs) ""
   pure (Just (T.pack title), T.pack uri)
 special _ = Nothing
 
