@@ -161,7 +161,7 @@ processLink (URL url) = fetchUrlTitle url
 processLink (Wikilink link) = do
   (t, url') <- fetchUrlTitle url
   pure (t <&> \t -> fromMaybe t (T.stripSuffix " - Wikipedia" t) <> " [" <> url' <> "]", url')
-  where url = "https://en.wikipedia.org/wiki/" <> link
+  where url = "https://en.wikipedia.org/wiki?search=" <> link
 
 -- | Fetches the HTML title of a URL and also returns the canonical URL (after performing any redirections).
 fetchUrlTitle :: (MonadIO m, MonadState Config m) => Text -> m (Maybe Text, Text)
