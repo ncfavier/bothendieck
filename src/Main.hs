@@ -5,13 +5,14 @@ import Control.Monad.Extra
 import Data.Foldable
 import Data.Map qualified as M
 import Data.Text qualified as T
+import Data.Text.IO as T
 import Data.Text.Encoding
 import Network.IRC.Client as IRC hiding (server, port, nick, password)
 import Options.Applicative hiding (action, Success, Failure)
 import Toml
-import Toml.FromValue
-import Toml.FromValue.Matcher
-import Toml.Pretty
+import Toml.Syntax
+import Toml.Schema.FromValue
+import Toml.Schema.Matcher
 
 import Parts.Eval
 import Parts.MerriamWebster
@@ -22,6 +23,9 @@ import Parts.URL
 import Parts.WolframAlpha
 import Parts.Wikimedia
 import Utils
+
+deriving newtype instance Semigroup (Table' l)
+deriving newtype instance Monoid (Table' l)
 
 data Options = Options
   { configFile :: FilePath
@@ -39,8 +43,8 @@ parseOptions = do
 main :: IO ()
 main = do
   options <- execParser (info (parseOptions <**> helper) mempty)
-  table <- mconcat <$> traverse (either fail pure . parse <=< readFile) ([configFile options] <> extraConfigFiles options)
-  config <- case runMatcher (fromValue (Table table)) of
+  table <- mconcat <$> traverse (either fail pure . parse <=< T.readFile) ([configFile options] <> extraConfigFiles options)
+  config <- case runMatcher (fromValue (Table' startPos table)) of
     Success _ x -> pure x
     Failure e -> fail (foldMap prettyMatchMessage e)
   randomCommands <- randomInit

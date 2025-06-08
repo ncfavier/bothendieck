@@ -34,10 +34,12 @@ nLabInit = do
         response <- httpBS request
         let tags = parseTags $ T.decodeUtf8 $ getResponseBody response
             pages = getPages $ tagTree tags
-            (name, url) = head $ [(n, u) | (n, u) <- pages, n == query]
-                              <> [(n, u) | (n, u) <- pages, T.toCaseFold n == T.toCaseFold query]
-                              <> pages
-        replyTo src $ ircBold <> name <> ircReset <> " [" <> baseUrl <> url <> "]"
+            results = [(n, u) | (n, u) <- pages, n == query]
+                   <> [(n, u) | (n, u) <- pages, T.toCaseFold n == T.toCaseFold query]
+                   <> pages
+        case results of
+          (name, url):_ -> replyTo src $ ircBold <> name <> ircReset <> " [" <> baseUrl <> url <> "]"
+          _ -> pure ()
       nlabRandomCommand src args = do
         tags <- liftIO $ fetchTags $ T.unpack $ baseUrl <> "/nlab/list/" <> T.unwords args
         let v = V.fromList (getPages (tagTree tags))

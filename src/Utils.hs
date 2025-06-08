@@ -18,8 +18,8 @@ import Network.IRC.Conduit (Target)
 import System.IO
 import System.Random
 import System.Timeout
-import Toml.FromValue (FromValue)
-import Toml.Generic
+import Toml.Schema.FromValue (FromValue)
+import Toml.Schema.Generic
 
 data Config = Config
   { server :: Text

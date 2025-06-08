@@ -11,6 +11,7 @@ import Data.ByteString.Encoding qualified as BE
 import Data.ByteString.Lazy qualified as BL
 import Data.CaseInsensitive (original)
 import Data.CURL.CookieJar
+import Data.Default
 import Data.Either
 import Data.Functor
 import Data.Map (Map)
@@ -118,7 +119,7 @@ restrictIPs _ = Just (ConnectionRestricted "forbidden address")
 
 -- | Disable certificate validation.
 tlsSettings :: TLSSettings
-tlsSettings = TLSSettingsSimple True False False
+tlsSettings = TLSSettingsSimple True False False def
 
 -- | Posts the title of URLs contained in messages from public channels.
 urlTitleInit :: IO (MessageHandler Config Text)
