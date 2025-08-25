@@ -13,6 +13,7 @@ import Data.Text qualified as T
 import Data.Vector (Vector)
 import Data.Vector qualified as V
 import GHC.Generics
+import Network.HTTP.Simple
 import Network.IRC.Client hiding (timeout)
 import Network.IRC.Conduit (Target)
 import System.IO
@@ -102,3 +103,6 @@ k ?= v = (k, Just v)
 
 pickRandom :: MonadIO m => Vector a -> m a
 pickRandom l = (l V.!) <$> randomRIO (0, V.length l - 1)
+
+setCommonRequestParams :: Request -> Request
+setCommonRequestParams = addRequestHeader "User-Agent" "bothendieck/0.0 (https://github.com/ncfavier/bothendieck; n+bothendieck@monade.li)"

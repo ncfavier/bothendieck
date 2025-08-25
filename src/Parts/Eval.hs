@@ -62,7 +62,7 @@ evalInit config = do
           if T.compareLength output maxOutputLength <= EQ && length (filter (not . T.null) $ T.lines output) <= maxOutputLines then
             replyTo src output
           else do
-            request <- parseRequestThrow (pasteUrl config) >>= formDataBody
+            request <- setCommonRequestParams <$> parseRequestThrow (pasteUrl config) >>= formDataBody
               [partFileRequestBody (pasteField config) "-" $ RequestBodyBS $ T.encodeUtf8 output]
             more <- liftIO $ try (httpBS request) >>= \case
               Left (e :: HttpException) -> "there's more but pasting failed" <$ print e

@@ -57,6 +57,7 @@ merriamWebsterInit (Just key) = do
               "-e":(readMaybe . T.unpack -> Just e):rest -> (e, rest)
               _ -> (1, args)
         let request = parseRequestThrow_ ("https://dictionaryapi.com/api/v3/references/collegiate/json/" <> T.unpack query)
+                    & setCommonRequestParams
                     & setRequestQueryString ["key" ?= T.encodeUtf8 key]
         response <- httpJSON request
         case getResponseBody response of

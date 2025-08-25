@@ -30,6 +30,7 @@ nLabInit = do
       nlabCommand src args = do
         let query = T.unwords args
             request = parseRequestThrow_ (T.unpack $ baseUrl <> "/nlab/search")
+                    & setCommonRequestParams
                     & setRequestQueryString [ "query" ?= T.encodeUtf8 query ]
         response <- httpBS request
         let tags = parseTags $ T.decodeUtf8 $ getResponseBody response

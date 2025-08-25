@@ -31,6 +31,7 @@ wikimediaInit = do
       summaryCommand baseUrl src [] = randomPageCommand baseUrl src []
       summaryCommand baseUrl src args = do
         let request = parseRequestThrow_ (T.unpack baseUrl <> "/wiki")
+                    & setCommonRequestParams
                     & setRequestQueryString [ "search" ?= T.encodeUtf8 (T.unwords args) ]
         response <- httpBS request
         let scraper = text $ "div" @: [hasClass "mw-parser-output"] // "p" @: [notP $ hasClass "mw-empty-elt"] `atDepth` 1
