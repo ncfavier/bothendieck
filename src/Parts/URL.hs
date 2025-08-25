@@ -169,7 +169,7 @@ fetchUrlTitle :: (MonadIO m, MonadState Config m) => Text -> m (Maybe Text, Text
 fetchUrlTitle url = get >>= \ config -> liftIO do
   cookieJar <- traverse (readCookieJarFile . T.unpack) (urlCookieJar config)
   request <- addRequestHeader "Accept-Language" "en,*"
-           . addRequestHeader "User-Agent" "bothendieck (https://github.com/ncfavier/bothendieck)"
+           . addRequestHeader "User-Agent" "bothendieck/0.0 (https://github.com/ncfavier/bothendieck; n+bothendieck@monade.li)"
           --  . setCookies Nothing -- Don't propagate cookies sent by the server across requests. This works around Google's cookie consent pages.
            . setCookies cookieJar
            . rewriteHost (urlAlternativeHosts config)
