@@ -86,6 +86,7 @@ special request | useYtDlp request = Just do
       ytDlpArgs =
         [ "--ignore-no-formats"
         , "--no-warnings"
+        , "--no-playlist"
         , "--extractor-args"
         , "youtube:player_client=web;player_skip=configs,js"
         , "--print"
