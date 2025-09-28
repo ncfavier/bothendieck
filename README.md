@@ -24,7 +24,6 @@ Each module in [`src/Parts`](https://github.com/ncfavier/bothendieck/tree/main/s
   - `.weather PLACE` asks for the current weather in `PLACE`.
 - [`Random`](https://github.com/ncfavier/bothendieck/blob/main/src/Parts/Random.hs) provides random quotes from various sources:
   - `.compliment`: surrealist compliments from the [surrealist compliment generator](http://www.madsci.org/cgi-bin/lynn/jardin/SCG).
-  - `.lytt[le|on]`: entries from the [Lyttle Lytton contest](https://adamcadre.ac/lyttle/).
 
 ## Usage
 
