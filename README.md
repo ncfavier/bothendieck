@@ -22,8 +22,6 @@ Each module in [`src/Parts`](https://github.com/ncfavier/bothendieck/tree/main/s
   - `.(wa|wolfram[alpha]) QUERY` asks a general question.
   - `.time PLACE` asks for the current time in `PLACE`.
   - `.weather PLACE` asks for the current weather in `PLACE`.
-- [`Random`](https://github.com/ncfavier/bothendieck/blob/main/src/Parts/Random.hs) provides random quotes from various sources:
-  - `.compliment`: surrealist compliments from the [surrealist compliment generator](http://www.madsci.org/cgi-bin/lynn/jardin/SCG).
 
 ## Usage
 
