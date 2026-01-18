@@ -1,5 +1,6 @@
 module Utils (module Utils, module Data.Function) where
 
+import Conduit (MonadThrow)
 import Control.Applicative
 import Control.Concurrent
 import Control.Exception
@@ -10,9 +11,12 @@ import Data.Function
 import Data.Map (Map)
 import Data.Text (Text)
 import Data.Text qualified as T
+import Data.Text.Encoding qualified as T
 import Data.Vector (Vector)
 import Data.Vector qualified as V
 import GHC.Generics
+import Network.HTTP.Client
+import Network.HTTP.Client.MultipartFormData
 import Network.HTTP.Simple
 import Network.IRC.Client hiding (timeout)
 import Network.IRC.Conduit (Target)
@@ -106,3 +110,11 @@ pickRandom l = (l V.!) <$> randomRIO (0, V.length l - 1)
 
 setCommonRequestParams :: Request -> Request
 setCommonRequestParams = addRequestHeader "User-Agent" "bothendieck/0.0 (https://github.com/ncfavier/bothendieck; n+bothendieck@monade.li)"
+
+paste :: (MonadIO m, MonadThrow m) => Config -> FilePath -> Text -> m Text
+paste config filename text = do
+  request <- setCommonRequestParams <$> parseRequestThrow (pasteUrl config) >>= formDataBody
+    [partFileRequestBody (pasteField config) filename $ RequestBodyBS $ T.encodeUtf8 text]
+  liftIO $ try (httpBS request) >>= \case
+    Left (e :: HttpException) -> "pasting failed" <$ print e
+    Right response -> pure $ T.strip . limitOutputAt 256 1 . T.decodeUtf8 $ getResponseBody response

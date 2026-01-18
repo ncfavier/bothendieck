@@ -19,6 +19,7 @@ import Parts.MerriamWebster
 import Parts.NLab
 import Parts.Random
 import Parts.Translate
+import Parts.Typst
 import Parts.URL
 import Parts.WolframAlpha
 import Parts.Wikimedia
@@ -48,6 +49,7 @@ main = do
     Success _ x -> pure x
     Failure e -> fail (foldMap prettyMatchMessage e)
   randomCommands <- randomInit
+  typstHandler <- typstInit config
   (evalHandler, evalCommands) <- evalInit config
   merriamWebsterCommands <- merriamWebsterInit (merriamWebsterKey config)
   nLabCommands <- nLabInit
@@ -65,7 +67,7 @@ main = do
         , Just runCommand <- commands M.!? cmd
         = True <$ runCommand src args
       commandHandler _ = pure False
-      messageHandlers = [commandHandler, evalHandler, urlTitleHandler]
+      messageHandlers = [commandHandler, evalHandler, typstHandler, urlTitleHandler]
       handleMessages = EventHandler matchMessageOrAction \ src (action, msg) -> do
         void . forkWorker $ anyM ($ (src, action, msg)) messageHandlers
       conn = getConnection (encodeUtf8 (server config)) (fromIntegral (port config))

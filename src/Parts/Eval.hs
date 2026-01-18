@@ -1,19 +1,14 @@
 module Parts.Eval (evalInit) where
 
-import Control.Exception
 import Control.Monad.IO.Class
 import Data.Aeson
 import Data.List
 import Data.Map qualified as M
 import Data.Text (Text)
 import Data.Text qualified as T
-import Data.Text.Encoding qualified as T
 import Data.Text.IO qualified as T
 import Data.Traversable
 import GHC.Generics
-import Network.HTTP.Client
-import Network.HTTP.Client.MultipartFormData
-import Network.HTTP.Simple
 import Network.IRC.Client
 import System.Directory
 import System.Environment
@@ -62,11 +57,7 @@ evalInit config = do
           if T.compareLength output maxOutputLength <= EQ && length (filter (not . T.null) $ T.lines output) <= maxOutputLines then
             replyTo src output
           else do
-            request <- setCommonRequestParams <$> parseRequestThrow (pasteUrl config) >>= formDataBody
-              [partFileRequestBody (pasteField config) "-" $ RequestBodyBS $ T.encodeUtf8 output]
-            more <- liftIO $ try (httpBS request) >>= \case
-              Left (e :: HttpException) -> "there's more but pasting failed" <$ print e
-              Right response -> pure $ T.strip . limitOutputAt 100 1 . T.decodeUtf8 $ getResponseBody response
+            more <- paste config "-" output
             replyTo src $ limitOutput output <> ircBold <> "[" <> more <> "]" <> ircReset
       handler _ = pure False
   pure (handler, M.singleton "eval" evalCommand)

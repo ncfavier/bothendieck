@@ -31,20 +31,7 @@
     qeval = inputs.qeval.legacyPackages.${system}.override {
       dumbTerminal = true;
     };
-    bothendieck = pkgs.callPackage ({ lib, runCommand, haskellPackages, makeWrapper, qeval ? null, translate-shell, yt-dlp }:
-      runCommand "bothendieck" {
-        nativeBuildInputs = [ makeWrapper ];
-        inherit (haskellPackages.bothendieck) meta;
-        passthru = haskellPackages.bothendieck.passthru // {
-          inherit qeval;
-        };
-      } ''
-        mkdir -p "$out/bin"
-        makeWrapper ${haskellPackages.bothendieck}/bin/bothendieck "$out/bin/bothendieck" \
-          ${lib.optionalString (qeval != null) "--set EVALUATORS ${qeval.all}"} \
-          --prefix PATH : ${lib.makeBinPath [ translate-shell yt-dlp ]}
-      ''
-    ) {};
+    bothendieck = pkgs.callPackage ./. {};
   in {
     packages = {
       inherit bothendieck;
