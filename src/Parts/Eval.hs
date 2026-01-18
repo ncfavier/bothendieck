@@ -57,7 +57,7 @@ evalInit config = do
           if T.compareLength output maxOutputLength <= EQ && length (filter (not . T.null) $ T.lines output) <= maxOutputLines then
             replyTo src output
           else do
-            more <- paste config "-" output
+            more <- paste config "-" (textRequestBody output)
             replyTo src $ limitOutput output <> ircBold <> "[" <> more <> "]" <> ircReset
       handler _ = pure False
   pure (handler, M.singleton "eval" evalCommand)

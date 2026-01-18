@@ -111,10 +111,13 @@ pickRandom l = (l V.!) <$> randomRIO (0, V.length l - 1)
 setCommonRequestParams :: Request -> Request
 setCommonRequestParams = addRequestHeader "User-Agent" "bothendieck/0.0 (https://github.com/ncfavier/bothendieck; n+bothendieck@monade.li)"
 
-paste :: (MonadIO m, MonadThrow m) => Config -> FilePath -> Text -> m Text
-paste config filename text = do
+paste :: (MonadIO m, MonadThrow m) => Config -> FilePath -> RequestBody -> m Text
+paste config filename body = do
   request <- setCommonRequestParams <$> parseRequestThrow (pasteUrl config) >>= formDataBody
-    [partFileRequestBody (pasteField config) filename $ RequestBodyBS $ T.encodeUtf8 text]
+    [partFileRequestBody (pasteField config) filename body]
   liftIO $ try (httpBS request) >>= \case
     Left (e :: HttpException) -> "pasting failed" <$ print e
     Right response -> pure $ T.strip . limitOutputAt 256 1 . T.decodeUtf8 $ getResponseBody response
+
+textRequestBody :: Text -> RequestBody
+textRequestBody = RequestBodyBS . T.encodeUtf8
