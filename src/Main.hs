@@ -9,6 +9,7 @@ import Data.Text.IO as T
 import Data.Text.Encoding
 import Network.IRC.Client as IRC hiding (server, port, nick, password)
 import Options.Applicative hiding (action, Success, Failure)
+import System.IO
 import Toml
 import Toml.Syntax
 import Toml.Schema.FromValue
@@ -43,6 +44,7 @@ parseOptions = do
 
 main :: IO ()
 main = do
+  hSetBuffering stdout LineBuffering
   options <- execParser (info (parseOptions <**> helper) mempty)
   table <- mconcat <$> traverse (either fail pure . parse <=< T.readFile) ([configFile options] <> extraConfigFiles options)
   config <- case runMatcher (fromValue (Table' startPos table)) of
