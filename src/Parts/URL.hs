@@ -170,6 +170,7 @@ fetchUrlTitle :: (MonadIO m, MonadState Config m) => Text -> m (Maybe Text, Text
 fetchUrlTitle url = get >>= \ config -> liftIO do
   cookieJar <- traverse (readCookieJarFile . T.unpack) (urlCookieJar config)
   request <- addRequestHeader "Accept-Language" "en,*"
+           . addRequestHeader "Cookie" "x-robot-challenge-2=passed;path=/"
            . setCommonRequestParams
           --  . setCookies Nothing -- Don't propagate cookies sent by the server across requests. This works around Google's cookie consent pages.
            . setCookies cookieJar
