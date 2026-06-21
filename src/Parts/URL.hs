@@ -1,4 +1,4 @@
-module Parts.URL (urlTitleInit, fetchUrlTitle) where
+module Parts.URL (urlTitleInit, fetchUrl) where
 
 import Control.Applicative
 import Control.Concurrent.ParallelIO.Local
@@ -80,7 +80,7 @@ useYtDlp request
 useYtDlp _ = False
 
 -- | Treat some requests specially.
-special :: Request -> Maybe (IO (Maybe Text, Text))
+special :: Request -> Maybe (IO (Maybe Text, Request))
 special request | useYtDlp request = Just do
   let uri = show (getUri request)
       ytDlpArgs =
@@ -95,7 +95,7 @@ special request | useYtDlp request = Just do
         , "--"
         , uri]
   title <- readCreateProcess (proc "yt-dlp" ytDlpArgs) ""
-  pure (Just (T.pack title), T.pack uri)
+  pure (Just (T.pack title), request)
 special _ = Nothing
 
 rewriteHost :: Map Text Text -> Request -> Request
@@ -133,7 +133,7 @@ urlTitleInit = do
       unless (null links) do
         s <- getIRCState
         (errs, titles) <- liftIO $ partitionEithers <$> withPool (length links) \ pool -> parallelE pool [runIRCAction (processLink l) s | l <- links]
-        sequence_ [replyTo src $ limitOutput $ ircBold <> "> " <> ircReset <> title | (Just title, _) <- titles]
+        sequence_ [replyTo src $ limitOutput $ ircBold <> "> " <> ircReset <> title | Just title <- titles]
         liftIO $ mapM_ print errs
     _ -> pure False
 
@@ -155,19 +155,19 @@ titleScraper = asum
       ogDescription <- meta "og:description"
       pure (ircBold <> ogTitle <> ircReset <> ": " <> ogDescription)
 
-getOriginalUri :: Response a -> Text
-getOriginalUri = T.pack . show . getUri . getOriginalRequest
-
-processLink :: (MonadIO m, MonadState Config m) => Link -> m (Maybe Text, Text)
-processLink (URL url) = fetchUrlTitle url
+processLink :: (MonadIO m, MonadState Config m) => Link -> m (Maybe Text)
+processLink (URL url) = fst <$> fetchUrl url
 processLink (Wikilink link) = do
-  (t, url') <- fetchUrlTitle url
-  pure (t <&> \t -> fromMaybe t (T.stripSuffix " - Wikipedia" t) <> " [" <> url' <> "]", url')
-  where url = "https://en.wikipedia.org/wiki?search=" <> link
+  let url = "https://en.wikipedia.org/wiki?search=" <> link
+  fetchUrl url <&> \(t, req) -> do
+    guard (path req /= "/wiki") -- don't link to search results
+    t <- t
+    let url' = getUriText req
+    pure $ fromMaybe t (T.stripSuffix " - Wikipedia" t) <> " [" <> url' <> "]"
 
--- | Fetches the HTML title of a URL and also returns the canonical URL (after performing any redirections).
-fetchUrlTitle :: (MonadIO m, MonadState Config m) => Text -> m (Maybe Text, Text)
-fetchUrlTitle url = get >>= \ config -> liftIO do
+-- | Fetches the HTML title of a URL and also returns the canonical request (after performing any redirections).
+fetchUrl :: (MonadIO m, MonadState Config m) => Text -> m (Maybe Text, Request)
+fetchUrl url = get >>= \ config -> liftIO do
   cookieJar <- traverse (readCookieJarFile . T.unpack) (urlCookieJar config)
   request <- addRequestHeader "Accept-Language" "en,*"
            . addRequestHeader "Cookie" "x-robot-challenge-2=passed;path=/"
@@ -179,7 +179,7 @@ fetchUrlTitle url = get >>= \ config -> liftIO do
          <$> parseRequestThrow (T.unpack url)
   flip fromMaybe (special request) do
     manager <- getGlobalManager
-    withResponse request manager \ response -> (,getOriginalUri response) <$> do
+    withResponse request manager \ response -> (,getOriginalRequest response) <$> do
       case mapMaybe (parseAccept @MediaType) $ getResponseHeader "Content-Type" response of
         ct:_ | ct `matches` "text/html"
             || ct `matches` "application/xhtml+xml"

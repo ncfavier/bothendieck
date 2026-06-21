@@ -22,7 +22,7 @@ wikimediaInit = do
               "-l":(T.toTitle . T.unwords -> lang) -> -- convenience for Wiktionary
                 ("Special:RandomInCategory/" <> lang <> " lemmas", "#" <> T.replace " " "_" lang)
               _ -> ("Special:RandomInCategory/" <> T.unwords args, "")
-        (mtitle, url) <- fetchUrlTitle (baseUrl <> "/wiki/" <> page)
+        (mtitle, getUriText -> url) <- fetchUrl (baseUrl <> "/wiki/" <> page)
         case mtitle of
           Just (T.breakOn " - " -> (title, _)) -> do
             replyTo src (ircBold <> title <> ircReset <> " " <> "[" <> url <> anchor <> "]")

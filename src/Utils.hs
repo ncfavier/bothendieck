@@ -121,3 +121,6 @@ paste config filename body = do
 
 textRequestBody :: Text -> RequestBody
 textRequestBody = RequestBodyBS . T.encodeUtf8
+
+getUriText :: Request -> Text
+getUriText = T.pack . show . getUri
